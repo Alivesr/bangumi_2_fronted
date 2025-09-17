@@ -24,9 +24,12 @@ importers:
       '@eslint/json':
         specifier: ^0.13.2
         version: 0.13.2
+      '@types/node':
+        specifier: ^24.5.1
+        version: 24.5.1
       '@vitejs/plugin-vue':
         specifier: ^6.0.1
-        version: 6.0.1(vite@7.1.5)(vue@3.5.21(typescript@5.8.3))
+        version: 6.0.1(vite@7.1.5(@types/node@24.5.1))(vue@3.5.21(typescript@5.8.3))
       '@vue/tsconfig':
         specifier: ^0.7.0
         version: 0.7.0(typescript@5.8.3)(vue@3.5.21(typescript@5.8.3))
@@ -47,7 +50,7 @@ importers:
         version: 8.44.0(eslint@9.35.0)(typescript@5.8.3)
       vite:
         specifier: ^7.1.2
-        version: 7.1.5
+        version: 7.1.5(@types/node@24.5.1)
       vue-tsc:
         specifier: ^3.0.5
         version: 3.0.7(typescript@5.8.3)
@@ -436,6 +439,9 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/node@24.5.1':
+    resolution: {integrity: sha512-/SQdmUP2xa+1rdx7VwB9yPq8PaKej8TD5cQ+XfKDPWWC+VDJU4rvVVagXqKUzhKjtFoNA8rXDJAkCxQPAe00+Q==}
 
   '@typescript-eslint/eslint-plugin@8.44.0':
     resolution: {integrity: sha512-EGDAOGX+uwwekcS0iyxVDmRV9HX6FLSM5kzrAToLTsr9OWCIKG/y3lQheCq18yZ5Xh78rRKJiEpP0ZaCs4ryOQ==}
@@ -1019,6 +1025,9 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  undici-types@7.12.0:
+    resolution: {integrity: sha512-goOacqME2GYyOZZfb5Lgtu+1IDmAlAEu5xnD3+xTzS10hT0vzpf0SPjkXwAw9Jm+4n/mQGDP3LO8CPbYROeBfQ==}
+
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
@@ -1361,6 +1370,10 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
+  '@types/node@24.5.1':
+    dependencies:
+      undici-types: 7.12.0
+
   '@typescript-eslint/eslint-plugin@8.44.0(@typescript-eslint/parser@8.44.0(eslint@9.35.0)(typescript@5.8.3))(eslint@9.35.0)(typescript@5.8.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.1
@@ -1454,10 +1467,10 @@ snapshots:
       '@typescript-eslint/types': 8.44.0
       eslint-visitor-keys: 4.2.1
 
-  '@vitejs/plugin-vue@6.0.1(vite@7.1.5)(vue@3.5.21(typescript@5.8.3))':
+  '@vitejs/plugin-vue@6.0.1(vite@7.1.5(@types/node@24.5.1))(vue@3.5.21(typescript@5.8.3))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.29
-      vite: 7.1.5
+      vite: 7.1.5(@types/node@24.5.1)
       vue: 3.5.21(typescript@5.8.3)
 
   '@volar/language-core@2.4.23':
@@ -2010,13 +2023,15 @@ snapshots:
 
   typescript@5.8.3: {}
 
+  undici-types@7.12.0: {}
+
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
 
   util-deprecate@1.0.2: {}
 
-  vite@7.1.5:
+  vite@7.1.5(@types/node@24.5.1):
     dependencies:
       esbuild: 0.25.9
       fdir: 6.5.0(picomatch@4.0.3)
@@ -2025,6 +2040,7 @@ snapshots:
       rollup: 4.50.2
       tinyglobby: 0.2.15
     optionalDependencies:
+      '@types/node': 24.5.1
       fsevents: 2.3.3
 
   vscode-uri@3.1.0: {}
