@@ -6,6 +6,7 @@ import Book from "@/pages/Book/index.vue";
 import Game from "@/pages/Game/index.vue";
 import Music from "@/pages/Music/index.vue";
 import Real from "@/pages/Real/index.vue";
+import Calendar from "@/pages/Calendar/index.vue";
 
 const routes = [
   { path: "/", component: Home },
@@ -14,7 +15,7 @@ const routes = [
   { path: "/game", component: Game },
   { path: "/music", component: Music },
   { path: "/real", component: Real },
-  { path: "/calendar", component: Home },
+  { path: "/calendar", component: Calendar },
 ];
 
 const router = createRouter({

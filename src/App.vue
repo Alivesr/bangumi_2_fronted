@@ -5,7 +5,7 @@ import TopNav from "@/pages/Home/components/TopNav.vue";
 <template>
   <div class="min-h-screen w-full bg-gray-50">
     <TopNav />
-    <main class="w-full pt-16">
+    <main class="w-full">
       <router-view />
     </main>
   </div>
