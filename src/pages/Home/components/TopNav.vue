@@ -5,6 +5,26 @@ import { useRouter, useRoute } from "vue-router";
 const router = useRouter();
 const route = useRoute();
 const isMobileMenuOpen = ref(false);
+const showSearchDropdown = ref(false);
+const searchType = ref(0);
+const keyword = ref("");
+
+// 搜索类型选项
+const searchTypes = [
+  { id: 0, name: "全部" },
+  { id: 2, name: "动画" },
+  { id: 1, name: "书籍" },
+  { id: 4, name: "游戏" },
+  { id: 3, name: "音乐" },
+  { id: 6, name: "三次元" },
+];
+
+// 获取当前搜索类型名称
+const currentSearchType = computed(() => {
+  return (
+    searchTypes.find((type) => type.id === searchType.value)?.name || "全部"
+  );
+});
 
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value;
@@ -12,6 +32,26 @@ const toggleMobileMenu = () => {
 
 const closeMobileMenu = () => {
   isMobileMenuOpen.value = false;
+};
+
+const toggleSearchDropdown = () => {
+  showSearchDropdown.value = !showSearchDropdown.value;
+};
+
+const selectSearchType = (typeId: number) => {
+  searchType.value = typeId;
+  showSearchDropdown.value = false;
+};
+
+const handleSearch = () => {
+  if (!keyword.value.trim()) return;
+
+  router.push({
+    path: `/subject_search/${keyword.value}`,
+    query: searchType.value ? { type: searchType.value.toString() } : {},
+  });
+  keyword.value = "";
+  searchType.value = 0;
 };
 
 // 计算当前激活的导航项
@@ -22,7 +62,7 @@ const activeNav = computed(() => {
   if (path.startsWith("/book")) return "book";
   if (path.startsWith("/game")) return "game";
   if (path.startsWith("/music")) return "music";
-  if (path.startsWith("/calendar")) return "calendar";
+  if (path.startsWith("/real")) return "real";
   return "home";
 });
 
@@ -31,9 +71,9 @@ const navItems = [
   { id: "home", name: "首页", path: "/" },
   { id: "anime", name: "动画", path: "/anime" },
   { id: "book", name: "书籍", path: "/book" },
-  { id: "music", name: "音乐", path: "/music" },
   { id: "game", name: "游戏", path: "/game" },
-  { id: "calendar", name: "三次元", path: "/calendar" },
+  { id: "music", name: "音乐", path: "/music" },
+  { id: "calendar", name: "三次元", path: "/real" },
 ];
 </script>
 
@@ -81,12 +121,55 @@ const navItems = [
         <!-- 搜索框 -->
         <div class="hidden md:flex items-center flex-1 max-w-md mx-6">
           <div class="relative w-full">
+            <!-- 搜索类型切换按钮 -->
+            <div class="absolute left-0 top-0 h-full z-10">
+              <button
+                @click="toggleSearchDropdown"
+                class="h-full px-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-l-full border border-gray-300 border-r-0 transition-colors duration-200 flex items-center"
+              >
+                <span class="text-sm font-medium">{{ currentSearchType }}</span>
+                <svg
+                  class="w-4 h-4 ml-1 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              <!-- 搜索类型下拉菜单 -->
+              <div
+                v-if="showSearchDropdown"
+                class="absolute top-full left-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+              >
+                <div class="py-1">
+                  <button
+                    v-for="type in searchTypes"
+                    :key="type.id"
+                    @click="selectSearchType(type.id)"
+                    class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200"
+                  >
+                    {{ type.name }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <input
               type="text"
+              v-model="keyword"
+              @keyup.enter="handleSearch"
               placeholder="搜索番剧、书籍、游戏..."
-              class="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+              class="w-full pl-20 pr-12 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
             <button
+              @click="handleSearch"
               class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-blue-600 transition-colors duration-200"
             >
               <svg
@@ -110,12 +193,7 @@ const navItems = [
         <div class="flex items-center space-x-3">
           <button
             @click="router.push('/calendar')"
-            :class="[
-              'hidden md:flex items-center px-4 py-2 rounded-full transition-all duration-200 font-medium',
-              activeNav === 'calendar'
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50',
-            ]"
+            class="hidden md:flex items-center px-4 py-2 rounded-full transition-all duration-200 font-medium"
           >
             <svg
               class="w-4 h-4 mr-2"
@@ -193,12 +271,7 @@ const navItems = [
                 router.push('/calendar');
                 closeMobileMenu();
               "
-              :class="[
-                'block w-full text-left px-4 py-3 rounded-full transition-all duration-200 font-medium',
-                activeNav === 'calendar'
-                  ? 'text-blue-600 bg-blue-50'
-                  : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50',
-              ]"
+              class="block w-full text-left px-4 py-3 rounded-full transition-all duration-200 font-medium"
             >
               每日放送
             </button>
