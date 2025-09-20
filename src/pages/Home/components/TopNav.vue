@@ -31,8 +31,9 @@ const navItems = [
   { id: "home", name: "首页", path: "/" },
   { id: "anime", name: "动画", path: "/anime" },
   { id: "book", name: "书籍", path: "/book" },
-  { id: "game", name: "游戏", path: "/game" },
   { id: "music", name: "音乐", path: "/music" },
+  { id: "game", name: "游戏", path: "/game" },
+  { id: "calendar", name: "三次元", path: "/calendar" },
 ];
 </script>
 
