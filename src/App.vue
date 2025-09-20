@@ -1,20 +1,16 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import TopNav from "@/pages/Home/components/TopNav.vue";
+</script>
 
 <template>
-  <router-view />
+  <div class="min-h-screen w-full bg-gray-50">
+    <TopNav />
+    <main class="w-full">
+      <router-view />
+    </main>
+  </div>
 </template>
 
 <style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
+/* 移除可能冲突的样式 */
 </style>
