@@ -3,7 +3,9 @@
     "allow": [
       "Bash(findstr:*)",
       "Bash(sed:*)",
-      "Bash(pnpm run dev:*)"
+      "Bash(pnpm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

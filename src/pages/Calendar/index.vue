@@ -2,77 +2,106 @@
 import { Service } from "@/api/services/Service";
 import { ref, onMounted } from "vue";
 import type { CalendarItem } from "@/api/models/CalenderItem";
-
+import PicView from "@/pages/Calendar/picview.vue";
 const calendarList = ref<CalendarItem[]>([]);
-onMounted(async () => {
-  const res: CalendarItem[] = await Service.getCalendar();
-  calendarList.value = res;
+const loading = ref(false);
+const error = ref<string | null>(null);
+
+// 加载数据
+const loadCalendar = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+    const res = await Service.getCalendar();
+    calendarList.value = res;
+  } catch (err) {
+    error.value = "加载失败，请稍后重试";
+    console.error("Failed to load calendar:", err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  loadCalendar();
 });
 </script>
 <template>
-  <div class="w-full min-h-screen bg-gray-50">
-    <div class="w-full px-4 sm:px-6 lg:px-8 py-8">
-      <h1 class="text-3xl font-bold text-gray-900 mb-8">每日放送</h1>
+  <div class="w-full">
+    <div class="w-full px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
+      <!-- 页面标题 -->
+      <div class="text-center mb-10">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">每周放送</h1>
+        <p class="text-gray-600">按星期查看精彩内容</p>
+      </div>
 
-      <div class="grid gap-6">
+      <!-- 加载状态 -->
+      <div
+        v-if="loading"
+        class="flex flex-col items-center justify-center py-20"
+      >
         <div
-          v-for="day in calendarList"
-          :key="day.weekday?.id"
-          class="bg-white rounded-2xl shadow-md p-6"
-        >
-          <h2 class="text-2xl font-semibold text-gray-900 mb-4">
-            {{ day.weekday?.cn }} ({{ day.weekday?.en }})
-          </h2>
+          class="w-10 h-10 border-3 border-gray-300 border-t-blue-500 rounded-full animate-spin"
+        ></div>
+        <p class="mt-4 text-gray-600">加载中...</p>
+      </div>
 
-          <div
-            v-if="day.items && day.items.length > 0"
-            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+      <!-- 错误状态 -->
+      <div
+        v-else-if="error"
+        class="flex flex-col items-center justify-center py-16 bg-white rounded-xl shadow-sm p-6"
+      >
+        <div class="text-red-500 mb-3">
+          <svg
+            class="w-12 h-12 mx-auto"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            <div
-              v-for="item in day.items"
-              :key="item.id"
-              class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-            >
-              <div class="flex items-start space-x-3">
-                <img
-                  v-if="item.images?.medium"
-                  :src="item.images.medium"
-                  :alt="item.name_cn || item.name"
-                  class="w-16 h-20 object-cover rounded"
-                />
-                <div class="flex-1 min-w-0">
-                  <h3 class="text-lg font-medium text-gray-900 truncate">
-                    {{ item.name_cn || item.name }}
-                  </h3>
-                  <p
-                    v-if="item.name && item.name !== item.name_cn"
-                    class="text-sm text-gray-600 truncate"
-                  >
-                    {{ item.name }}
-                  </p>
-                  <p
-                    v-if="item.summary"
-                    class="text-sm text-gray-500 mt-2 line-clamp-2"
-                  >
-                    {{ item.summary }}
-                  </p>
-                  <div
-                    class="mt-2 flex items-center space-x-4 text-xs text-gray-500"
-                  >
-                    <span v-if="item.air_date">{{ item.air_date }}</span>
-                    <span v-if="item.rating?.score"
-                      >评分: {{ item.rating.score }}</span
-                    >
-                    <span v-if="item.eps_count">共{{ item.eps_count }}话</span>
-                  </div>
-                </div>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            ></path>
+          </svg>
+        </div>
+        <p class="text-red-600 mb-4">{{ error }}</p>
+        <button
+          @click="loadCalendar"
+          class="px-5 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+        >
+          重新加载
+        </button>
+      </div>
+
+      <!-- 星期日历 -->
+      <div v-else class="space-y-6">
+        <!-- 星期内容 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7">
+          <div
+            v-for="(day, index) in calendarList"
+            :key="day.weekday?.id ?? index"
+            class="rounded-xl overflow-hidden hover:shadow-md transition-all duration-200 flex flex-col"
+          >
+            <!-- 星期标题 -->
+            <div class="px-0 py-3 text-center">
+              <div
+                class="inline-block bg-gray-800 text-white text-sm font-bold px-3 py-2 rounded-md shadow-lg transform hover:scale-105 transition-transform duration-200 w-42"
+              >
+                {{ day.weekday?.cn }}
               </div>
             </div>
-          </div>
 
-          <div v-else class="text-gray-500 text-center py-8">暂无放送内容</div>
+            <!-- 内容区域 -->
+            <div class="flex flex-wrap gap-2 justify-center">
+              <PicView v-for="item in day.items" :key="item.id" :item="item" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped></style>
