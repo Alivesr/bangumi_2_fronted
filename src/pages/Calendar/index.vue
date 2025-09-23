@@ -42,6 +42,22 @@ const getReorderedCalendarList = () => {
   return reorderedList;
 };
 
+// 滚动到指定星期
+const scrollToWeekday = (weekdayId: number | undefined) => {
+  if (weekdayId !== undefined) {
+    const element = document.getElementById(`weekday-${weekdayId}`);
+    if (element) {
+      const offset = 60; // 想要的额外偏移
+      const top = element.getBoundingClientRect().top + window.scrollY - offset;
+
+      window.scrollTo({
+        top,
+        behavior: "smooth",
+      });
+    }
+  }
+};
+
 // 加载数据
 const loadCalendar = async () => {
   try {
@@ -170,7 +186,11 @@ onMounted(() => {
         </div>
         <!-- 列表形式 -->
         <div v-else class="flex flex-col gap-2">
-          <div v-for="day in getReorderedCalendarList()" :key="day.weekday?.id">
+          <div
+            v-for="day in getReorderedCalendarList()"
+            :key="day.weekday?.id"
+            :id="`weekday-${day.weekday?.id}`"
+          >
             <div class="px-0 py-3 text-left">
               <div
                 class="inline-block bg-gray-800 text-white text-sm text-center font-bold px-3 py-2 rounded-md shadow-lg transform hover:scale-105 transition-transform duration-200 w-42"
@@ -180,6 +200,22 @@ onMounted(() => {
             </div>
             <div class="flex flex-wrap gap-2 flex-start">
               <PicView v-for="item in day.items" :key="item.id" :item="item" />
+            </div>
+          </div>
+
+          <!-- 星期导航 -->
+          <div
+            class="fixed bottom-20 right-10 bg-white/90 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200/50 p-3 z-10"
+          >
+            <div class="flex flex-col gap-1.5">
+              <button
+                v-for="day in getReorderedCalendarList()"
+                :key="day.weekday?.id"
+                @click="scrollToWeekday(day.weekday?.id)"
+                class="px-3 py-2 text-xs font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+              >
+                {{ day.weekday?.cn }}
+              </button>
             </div>
           </div>
         </div>
