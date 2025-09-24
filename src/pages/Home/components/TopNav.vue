@@ -75,6 +75,13 @@ const navItems = [
   { id: "music", name: "音乐", path: "/music" },
   { id: "calendar", name: "三次元", path: "/real" },
 ];
+
+// 登录
+const BACKEND_URL = "http://localhost:3000";
+// 登录按钮点击事件
+const handleLogin = () => {
+  window.open(BACKEND_URL + "/api/login", "_blank");
+};
 </script>
 
 <template>
@@ -213,6 +220,7 @@ const navItems = [
 
           <button
             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors duration-200 font-medium shadow-sm hover:shadow-md"
+            @click="handleLogin"
           >
             登录
           </button>

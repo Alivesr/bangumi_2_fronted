@@ -7,6 +7,7 @@ import Game from "@/pages/Game/index.vue";
 import Music from "@/pages/Music/index.vue";
 import Real from "@/pages/Real/index.vue";
 import Calendar from "@/pages/Calendar/index.vue";
+import Auth from "@/pages/Auth/index.vue";
 
 const routes = [
   { path: "/", component: Home },
@@ -16,6 +17,8 @@ const routes = [
   { path: "/music", component: Music },
   { path: "/real", component: Real },
   { path: "/calendar", component: Calendar },
+  { path: "/auth/success", component: Auth },
+  { path: "/auth/error", component: Auth },
 ];
 
 const router = createRouter({
