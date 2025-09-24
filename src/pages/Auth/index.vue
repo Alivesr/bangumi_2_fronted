@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import useAuthStore from "@/stores/auth";
 
 const router = useRouter();
 const route = useRoute();
@@ -9,6 +10,8 @@ const error = ref("");
 const success = ref(false);
 const countdown = ref(5);
 const errorMessage = ref("");
+
+const authStore = useAuthStore();
 
 const handleAuthCallback = () => {
   const isErrorPage = route.path === "/auth/error";
@@ -54,6 +57,10 @@ const handleAuthCallback = () => {
 
     // 保存到本地存储
     localStorage.setItem("bangumi_token", JSON.stringify(tokenData));
+    // 保存到 pinia store
+    authStore.setToken(tokenData.access_token);
+    authStore.setUserId(tokenData.user_id);
+    authStore.setExpiresAt(tokenData.expires_at);
 
     // 清除 URL 中的敏感参数
     const newUrl = new URL(window.location.href);
