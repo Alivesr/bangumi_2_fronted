@@ -8,7 +8,7 @@ type Resolver<T> = (options: ApiRequestOptions) => Promise<T>;
 type Headers = Record<string, string>;
 
 export type OpenAPIConfig = {
-  BASE: "https://api.bgm.tv";
+  BASE: string; // 改为 string 类型，支持相对路径
   VERSION: string;
   WITH_CREDENTIALS: boolean;
   CREDENTIALS: "include" | "omit" | "same-origin";
@@ -20,10 +20,10 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-  BASE: "https://api.bgm.tv",
+  BASE: "https://api.bgm.tv", // 恢复直接访问
   VERSION: "1.0.0",
   WITH_CREDENTIALS: false,
-  CREDENTIALS: "include",
+  CREDENTIALS: "omit", // 保持 omit，避免凭据问题
   TOKEN: undefined,
   USERNAME: undefined,
   PASSWORD: undefined,
