@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import useAuthStore from "@/stores/auth";
+import { Service } from "@/api/services/Service";
 
 const router = useRouter();
 const route = useRoute();
@@ -80,6 +81,11 @@ const handleAuthCallback = () => {
   }
 };
 
+const getUserInfoByToken = async () => {
+  const userInfo = await Service.getMyself();
+  console.log("获取的用户信息:", userInfo);
+};
+
 // 倒计时功能
 const startCountdown = () => {
   const timer = setInterval(() => {
@@ -93,6 +99,7 @@ const startCountdown = () => {
 
 onMounted(() => {
   handleAuthCallback();
+  getUserInfoByToken();
 });
 </script>
 

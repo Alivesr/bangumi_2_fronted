@@ -5,6 +5,7 @@ import App from "./App.vue";
 import router from "./router";
 import useAuthStore from "./stores/auth";
 import { useTokenRefresh } from "./composables/useTokenRefresh";
+import "./api/auth"; // 初始化 API 认证配置
 
 const app = createApp(App);
 const pinia = createPinia();
