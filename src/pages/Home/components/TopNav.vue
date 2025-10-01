@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import useAuthStore from "@/stores/auth";
 
 const router = useRouter();
 const route = useRoute();
+const authStore = useAuthStore();
 const isMobileMenuOpen = ref(false);
 const showSearchDropdown = ref(false);
+const showUserMenu = ref(false);
 const searchType = ref(0);
 const keyword = ref("");
 
@@ -36,6 +39,12 @@ const closeMobileMenu = () => {
 
 const toggleSearchDropdown = () => {
   showSearchDropdown.value = !showSearchDropdown.value;
+};
+
+const toggleUserMenu = () => {
+  showUserMenu.value = !showUserMenu.value;
+  // 关闭搜索下拉菜单
+  showSearchDropdown.value = false;
 };
 
 const selectSearchType = (typeId: number) => {
@@ -82,6 +91,40 @@ const BACKEND_URL = "http://localhost:3000";
 const handleLogin = () => {
   window.open(BACKEND_URL + "/api/login", "_blank");
 };
+
+const isLoggedIn = computed(() => {
+  return authStore.isLoggedIn;
+});
+
+// 用户信息计算属性
+const userInfo = computed(() => {
+  return authStore.userInfo;
+});
+
+// 登出功能
+const handleLogout = () => {
+  authStore.logout();
+  router.push("/");
+};
+
+// 点击外部关闭菜单
+const handleClickOutside = (event: Event) => {
+  const target = event.target as HTMLElement;
+  const userMenu = document.querySelector(".user-menu-container");
+
+  if (userMenu && !userMenu.contains(target)) {
+    showUserMenu.value = false;
+    showSearchDropdown.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
 </script>
 
 <template>
@@ -219,11 +262,75 @@ const handleLogin = () => {
           </button>
 
           <button
+            v-if="!isLoggedIn"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors duration-200 font-medium shadow-sm hover:shadow-md"
             @click="handleLogin"
           >
             登录
           </button>
+
+          <div v-else class="flex items-center gap-3">
+            <!-- 用户信息和菜单容器 -->
+            <div class="relative user-menu-container">
+              <!-- 用户信息 -->
+              <div
+                @click="toggleUserMenu"
+                class="flex items-center gap-2 text-gray-700 cursor-pointer hover:text-blue-600 transition-colors duration-200"
+              >
+                <img
+                  :src="(userInfo as any)?.avatar?.small || '/default-avatar.png'"
+                  :alt="(userInfo as any)?.nickname || '用户'"
+                  class="w-9 h-9 rounded-full object-cover"
+                />
+                <span class="text-sm font-medium hidden md:inline">{{
+                  (userInfo as any)?.nickname || "用户"
+                }}</span>
+                <svg
+                  class="w-4 h-4 text-gray-400 transition-transform duration-200"
+                  :class="{ 'rotate-180': showUserMenu }"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+
+              <!-- 用户菜单 -->
+              <ul
+                v-if="showUserMenu"
+                class="absolute top-full right-0 mt-2 bg-white rounded-xl w-52 p-2 shadow-xl z-50 border border-gray-200"
+              >
+                <li>
+                  <button
+                    @click="
+                      router.push(`/user/${authStore.userId}`);
+                      showUserMenu = false;
+                    "
+                    class="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-gray-700 rounded-lg transition-colors duration-200"
+                  >
+                    个人中心
+                  </button>
+                </li>
+                <li>
+                  <button
+                    @click="
+                      handleLogout();
+                      showUserMenu = false;
+                    "
+                    class="block w-full text-left px-4 py-3 text-red-500 hover:bg-red-100 hover:text-red-700 rounded-lg transition-colors duration-200"
+                  >
+                    退出登录
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
 
           <!-- 移动端菜单按钮 -->
           <button

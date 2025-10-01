@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import useAuthStore from "@/stores/auth";
 import { Service } from "@/api/services/Service";
+import { type User } from "@/api/models/User";
 
 const router = useRouter();
 const route = useRoute();
@@ -14,7 +15,7 @@ const errorMessage = ref("");
 
 const authStore = useAuthStore();
 
-const handleAuthCallback = () => {
+const handleAuthCallback = async () => {
   const isErrorPage = route.path === "/auth/error";
   const urlParams = route.query;
 
@@ -62,7 +63,6 @@ const handleAuthCallback = () => {
     authStore.setToken(tokenData.access_token);
     authStore.setUserId(tokenData.user_id);
     authStore.setExpiresAt(tokenData.expires_at);
-
     // 清除 URL 中的敏感参数
     const newUrl = new URL(window.location.href);
     newUrl.searchParams.delete("token_data");
@@ -70,6 +70,9 @@ const handleAuthCallback = () => {
 
     success.value = true;
     loading.value = false;
+
+    // 获取用户详细信息
+    await getUserInfoByToken();
 
     // 开始倒计时
     startCountdown();
@@ -82,8 +85,20 @@ const handleAuthCallback = () => {
 };
 
 const getUserInfoByToken = async () => {
-  const userInfo = await Service.getMyself();
-  console.log("获取的用户信息:", userInfo);
+  try {
+    console.log("正在获取用户详细信息...");
+    const userInfo = await Service.getMyself();
+    console.log("获取的用户信息:", userInfo);
+
+    // 保存用户详细信息到 store
+    authStore.setUserInfo(userInfo as User);
+
+    console.log("✅ 用户信息已保存到 store 和本地存储");
+  } catch (error) {
+    console.error("❌ 获取用户信息失败:", error);
+    // 即使获取用户信息失败，也不影响登录流程
+    // 用户信息可以在后续需要时再次获取
+  }
 };
 
 // 倒计时功能
@@ -97,9 +112,8 @@ const startCountdown = () => {
   }, 1000);
 };
 
-onMounted(() => {
-  handleAuthCallback();
-  getUserInfoByToken();
+onMounted(async () => {
+  await handleAuthCallback();
 });
 </script>
 
