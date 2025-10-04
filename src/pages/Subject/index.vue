@@ -4,6 +4,9 @@ import { onMounted, ref } from "vue";
 import { Service } from "@/api/services/Service";
 import type { Subject } from "@/api/models/Subject";
 import Top from "@/pages/Subject/components/Top.vue";
+import Left from "@/pages/Subject/components/Left.vue";
+import Introduction from "@/pages/Subject/components/Introduction.vue";
+import Tags from "@/pages/Subject/components/Tags.vue";
 
 const route = useRoute();
 const subjectId = Number(route.params.id);
@@ -33,8 +36,22 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col items-center justify-center box-border w-full">
+  <div class="flex flex-col box-border w-full">
     <!-- 顶部导航标题 -->
     <Top :subject="subject" />
+    <!-- 内容 -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+      <div class="flex gap-8 mt-6">
+        <!-- 左侧 -->
+        <Left :subject="subject" />
+        <!-- 右侧内容区域 -->
+        <div class="flex-1 min-w-0">
+          <!-- 简介 -->
+          <Introduction :subject="subject" />
+          <!-- 标签 -->
+          <Tags :subject="subject" />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
