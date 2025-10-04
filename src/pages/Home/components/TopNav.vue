@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import useAuthStore from "@/stores/auth";
 
@@ -33,18 +33,21 @@ const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value;
 };
 
-const closeMobileMenu = () => {
-  isMobileMenuOpen.value = false;
-};
-
-const toggleSearchDropdown = () => {
+const toggleSearchDropdown = (event: Event) => {
+  event.stopPropagation();
   showSearchDropdown.value = !showSearchDropdown.value;
+  showUserMenu.value = false;
 };
 
-const toggleUserMenu = () => {
+const toggleUserMenu = (event: Event) => {
+  event.stopPropagation();
   showUserMenu.value = !showUserMenu.value;
-  // 关闭搜索下拉菜单
   showSearchDropdown.value = false;
+};
+
+const closeDropdowns = () => {
+  showSearchDropdown.value = false;
+  showUserMenu.value = false;
 };
 
 const selectSearchType = (typeId: number) => {
@@ -85,51 +88,33 @@ const navItems = [
   { id: "calendar", name: "三次元", path: "/real" },
 ];
 
-// 登录
+// 通用导航项样式类
+const getNavItemClass = (isActive: boolean) => [
+  "px-4 py-2 rounded-full transition-all duration-200 font-medium",
+  isActive
+    ? "text-blue-600 bg-blue-50"
+    : "text-gray-700 hover:text-blue-600 hover:bg-blue-50",
+];
+
 const BACKEND_URL = "http://localhost:3000";
-// 登录按钮点击事件
+
 const handleLogin = () => {
   window.open(BACKEND_URL + "/api/login", "_blank");
 };
-
-const isLoggedIn = computed(() => {
-  return authStore.isLoggedIn;
-});
-
-// 用户信息计算属性
-const userInfo = computed(() => {
-  return authStore.userInfo;
-});
 
 // 登出功能
 const handleLogout = () => {
   authStore.logout();
   router.push("/");
 };
-
-// 点击外部关闭菜单
-const handleClickOutside = (event: Event) => {
-  const target = event.target as HTMLElement;
-  const userMenu = document.querySelector(".user-menu-container");
-
-  if (userMenu && !userMenu.contains(target)) {
-    showUserMenu.value = false;
-    showSearchDropdown.value = false;
-  }
-};
-
-onMounted(() => {
-  document.addEventListener("click", handleClickOutside);
-});
-
-onUnmounted(() => {
-  document.removeEventListener("click", handleClickOutside);
-});
 </script>
 
 <template>
   <!-- 顶部导航栏 - 与页面等宽 -->
-  <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 w-full">
+  <nav
+    class="bg-white border-b border-gray-200 sticky top-0 z-50 w-full"
+    @click="closeDropdowns"
+  >
     <div class="w-full px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
         <!-- Logo -->
@@ -157,12 +142,7 @@ onUnmounted(() => {
             v-for="item in navItems"
             :key="item.id"
             @click="router.push(item.path)"
-            :class="[
-              'px-4 py-2 rounded-full transition-all duration-200 font-medium',
-              activeNav === item.id
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50',
-            ]"
+            :class="getNavItemClass(activeNav === item.id)"
           >
             {{ item.name }}
           </button>
@@ -172,7 +152,7 @@ onUnmounted(() => {
         <div class="hidden md:flex items-center flex-1 max-w-md mx-6">
           <div class="relative w-full">
             <!-- 搜索类型切换按钮 -->
-            <div class="absolute left-0 top-0 h-full z-10">
+            <div class="absolute left-0 top-0 h-full z-10" @click.stop>
               <button
                 @click="toggleSearchDropdown"
                 class="h-full px-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-l-full border border-gray-300 border-r-0 transition-colors duration-200 flex items-center"
@@ -262,7 +242,7 @@ onUnmounted(() => {
           </button>
 
           <button
-            v-if="!isLoggedIn"
+            v-if="!authStore.isLoggedIn"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors duration-200 font-medium shadow-sm hover:shadow-md"
             @click="handleLogin"
           >
@@ -271,19 +251,21 @@ onUnmounted(() => {
 
           <div v-else class="flex items-center gap-3">
             <!-- 用户信息和菜单容器 -->
-            <div class="relative user-menu-container">
+            <div class="relative" @click.stop>
               <!-- 用户信息 -->
               <div
                 @click="toggleUserMenu"
                 class="flex items-center gap-2 text-gray-700 cursor-pointer hover:text-blue-600 transition-colors duration-200"
               >
                 <img
-                  :src="(userInfo as any)?.avatar?.small || '/default-avatar.png'"
-                  :alt="(userInfo as any)?.nickname || '用户'"
+                  :src="
+                    authStore.userInfo?.avatar?.small || '/default-avatar.png'
+                  "
+                  :alt="authStore.userInfo?.nickname || '用户'"
                   class="w-9 h-9 rounded-full object-cover"
                 />
                 <span class="text-sm font-medium hidden md:inline">{{
-                  (userInfo as any)?.nickname || "用户"
+                  authStore.userInfo?.nickname || "用户"
                 }}</span>
                 <svg
                   class="w-4 h-4 text-gray-400 transition-transform duration-200"
@@ -369,13 +351,11 @@ onUnmounted(() => {
             :key="item.id"
             @click="
               router.push(item.path);
-              closeMobileMenu();
+              isMobileMenuOpen = false;
             "
             :class="[
-              'block w-full text-left px-4 py-3 rounded-full transition-all duration-200 font-medium',
-              activeNav === item.id
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50',
+              'block w-full text-left',
+              ...getNavItemClass(activeNav === item.id),
             ]"
           >
             {{ item.name }}
@@ -384,9 +364,9 @@ onUnmounted(() => {
             <button
               @click="
                 router.push('/calendar');
-                closeMobileMenu();
+                isMobileMenuOpen = false;
               "
-              class="block w-full text-left px-4 py-3 rounded-full transition-all duration-200 font-medium"
+              class="block w-full text-left px-4 py-2 rounded-full transition-all duration-200 font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50"
             >
               每日放送
             </button>

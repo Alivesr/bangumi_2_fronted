@@ -2,7 +2,7 @@
 import type { Subject } from "@/api/models/Subject";
 import type { v0_subject_relation } from "@/api/models/v0_subject_relation";
 import { Service } from "@/api/services/Service";
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 
 const props = defineProps<{
   subject?: Subject;
@@ -10,6 +10,28 @@ const props = defineProps<{
 
 const relatedSubjects = ref<v0_subject_relation[]>([]);
 const loading = ref(false);
+const filterRelation = ref<string>("all");
+
+// 所有唯一的关系类型
+const relationTypes = computed(() => {
+  const types = new Set(relatedSubjects.value.map((item) => item.relation));
+  return Array.from(types);
+});
+
+// 筛选后的条目列表
+const filteredSubjects = computed(() => {
+  if (filterRelation.value === "all") {
+    return relatedSubjects.value;
+  }
+  return relatedSubjects.value.filter(
+    (item) => item.relation === filterRelation.value
+  );
+});
+
+// 显示的条目列表（始终只显示前12个）
+const displayedSubjects = computed(() => {
+  return filteredSubjects.value.slice(0, 12);
+});
 
 const getRelatedSubjectsBySubjectId = async () => {
   if (!props.subject?.id) return;
@@ -23,6 +45,49 @@ const getRelatedSubjectsBySubjectId = async () => {
     relatedSubjects.value = [];
   } finally {
     loading.value = false;
+  }
+};
+
+// 根据关系类型获取标签样式
+const getRelationBadgeStyle = (relation: string) => {
+  const lowerRelation = relation.toLowerCase();
+
+  if (lowerRelation.includes("续集") || lowerRelation.includes("sequel")) {
+    return {
+      bg: "bg-blue-50",
+      text: "text-blue-700",
+      border: "border-blue-200",
+    };
+  } else if (
+    lowerRelation.includes("前传") ||
+    lowerRelation.includes("prequel")
+  ) {
+    return {
+      bg: "bg-purple-50",
+      text: "text-purple-700",
+      border: "border-purple-200",
+    };
+  } else if (
+    lowerRelation.includes("番外") ||
+    lowerRelation.includes("side story")
+  ) {
+    return {
+      bg: "bg-emerald-50",
+      text: "text-emerald-700",
+      border: "border-emerald-200",
+    };
+  } else if (lowerRelation.includes("主篇") || lowerRelation.includes("main")) {
+    return {
+      bg: "bg-rose-50",
+      text: "text-rose-700",
+      border: "border-rose-200",
+    };
+  } else {
+    return {
+      bg: "bg-gray-100",
+      text: "text-gray-600",
+      border: "border-gray-200",
+    };
   }
 };
 
@@ -41,39 +106,60 @@ watch(
   <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mt-4">
     <!-- 标题区域 -->
     <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center">
-        <svg
-          class="w-5 h-5 text-gray-600 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <div class="flex items-center gap-3">
+        <div class="flex items-center">
+          <svg
+            class="w-5 h-5 text-gray-600 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+            ></path>
+          </svg>
+          <h3 class="text-lg font-semibold text-gray-800">关联条目</h3>
+        </div>
+        <!-- 筛选器 -->
+        <select
+          v-model="filterRelation"
+          class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-          ></path>
-        </svg>
-        <h3 class="text-lg font-semibold text-gray-800">关联条目</h3>
+          <option value="all">全部 ({{ relatedSubjects.length }})</option>
+          <option v-for="type in relationTypes" :key="type" :value="type">
+            {{ type }}
+          </option>
+        </select>
       </div>
-      <span class="text-sm text-gray-500">
-        {{ relatedSubjects.length }} 个关联
-      </span>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-gray-500">
+          {{ filteredSubjects.length }} 个关联
+        </span>
+        <router-link
+          v-if="filteredSubjects.length > 12"
+          :to="`/subject/${props.subject?.id}/relations`"
+          class="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+        >
+          查看全部
+        </router-link>
+      </div>
     </div>
 
     <!-- 加载状态 -->
     <div
       v-if="loading"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
     >
       <div
         v-for="i in 12"
         :key="i"
         class="flex gap-3 p-3 rounded-lg border border-gray-100 animate-pulse"
       >
-        <div class="w-16 h-16 bg-gray-200 rounded-md flex-shrink-0"></div>
-        <div class="flex-1 space-y-2">
+        <div class="w-14 h-14 bg-gray-200 rounded-md flex-shrink-0"></div>
+        <div class="flex-1 space-y-2 pt-0.5">
           <div class="h-4 bg-gray-200 rounded w-3/4"></div>
           <div class="h-3 bg-gray-200 rounded w-1/2"></div>
         </div>
@@ -83,35 +169,51 @@ watch(
     <!-- 关联条目列表 -->
     <div
       v-else-if="relatedSubjects.length > 0"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
     >
       <div
-        v-for="item in relatedSubjects.slice(0, 12)"
+        v-for="item in displayedSubjects"
         :key="item.id"
-        class="group flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50/50 transition-all duration-200 border border-gray-200 cursor-pointer hover:border-blue-300 hover:shadow-sm bg-white"
+        class="group flex items-start gap-3 p-3 rounded-lg transition-all duration-200 border border-gray-200 cursor-pointer hover:border-blue-300 hover:shadow-sm hover:bg-blue-50/30 bg-white"
       >
-        <img
-          :src="item.images?.small"
-          :alt="item.name"
-          class="w-16 h-16 object-cover object-top rounded-md flex-shrink-0"
-          loading="lazy"
-        />
-        <div class="flex flex-col min-w-0 flex-1">
-          <div
-            class="font-semibold text-gray-800 text-sm truncate group-hover:text-blue-600 transition-colors"
-            :title="item.name_cn || item.name"
-          >
-            {{ item.name_cn || item.name }}
+        <div class="flex-shrink-0">
+          <div class="relative overflow-hidden rounded-md">
+            <img
+              :src="item.images?.small"
+              :alt="item.name"
+              class="w-14 h-14 object-cover object-top transition-transform duration-200 group-hover:scale-105"
+              loading="lazy"
+            />
           </div>
-          <div
-            v-if="item.name_cn && item.name"
-            class="text-xs text-gray-500 mt-1 truncate"
-            :title="item.name"
-          >
-            {{ item.name }}
-          </div>
-          <div v-if="item.relation" class="text-xs text-blue-600 mt-1 truncate">
-            {{ item.relation }}
+        </div>
+        <div class="flex flex-col min-w-0 flex-1 pt-0.5">
+          <div class="flex items-start gap-2 mb-1">
+            <div class="flex-1 min-w-0">
+              <h4
+                class="font-semibold text-gray-900 text-sm group-hover:text-blue-600 transition-colors leading-tight line-clamp-2"
+                :title="item.name_cn || item.name"
+              >
+                {{ item.name_cn || item.name }}
+              </h4>
+              <p
+                v-if="item.name_cn && item.name"
+                class="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-1"
+                :title="item.name"
+              >
+                {{ item.name }}
+              </p>
+            </div>
+            <span
+              v-if="item.relation"
+              :class="[
+                'px-2 py-0.5 text-xs font-medium rounded-md flex-shrink-0 border whitespace-nowrap',
+                getRelationBadgeStyle(item.relation).bg,
+                getRelationBadgeStyle(item.relation).text,
+                getRelationBadgeStyle(item.relation).border,
+              ]"
+            >
+              {{ item.relation }}
+            </span>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import type { RelatedCharacter, Character, Images } from "@/api";
 import { Service } from "@/api/services/Service";
 import type { Subject } from "@/api/models/Subject";
@@ -11,6 +11,32 @@ const props = defineProps<{
 const characters = ref<RelatedCharacter[]>([]);
 const charactersDetailMap = ref<Record<number, Character>>({});
 const loading = ref(false);
+const filterType = ref<string>("all");
+
+// 缓存中文名的 computed map
+const chineseNamesMap = computed(() => {
+  const map: Record<number, string | null> = {};
+  characters.value.forEach((char) => {
+    map[char.id] = getChineseNameFromDetail(char.id);
+  });
+  return map;
+});
+
+// 筛选后的角色列表
+const filteredCharacters = computed(() => {
+  if (filterType.value === "all") {
+    return characters.value;
+  }
+  return characters.value.filter((char) => {
+    const type = getRelationType(char.relation);
+    return type === filterType.value;
+  });
+});
+
+// 显示的角色列表（始终只显示前12个）
+const displayedCharacters = computed(() => {
+  return filteredCharacters.value.slice(0, 12);
+});
 
 // 获取角色图片URL
 const getCharacterImageUrl = (
@@ -19,38 +45,104 @@ const getCharacterImageUrl = (
   return images?.small || "/default-character.png";
 };
 
-// 根据关系类型获取标签样式
-const getRelationBadgeStyle = (relation: string) => {
+// 从角色详情中获取中文名
+const getChineseNameFromDetail = (characterId: number) => {
+  const detail = charactersDetailMap.value[characterId];
+  if (!detail?.infobox) return null;
+
+  // 查找中文名相关的字段
+  const chineseNameKeys = [
+    "简体中文名",
+    "中文名",
+    "中文名称",
+    "简体名",
+    "大陆名",
+  ];
+  for (const item of detail.infobox) {
+    if (item.key && chineseNameKeys.includes(item.key)) {
+      return item.value;
+    }
+  }
+  return null;
+};
+
+// 角色类型常量
+const CharacterRelationType = {
+  MAIN: "main", // 主角
+  SUPPORTING: "supporting", // 配角
+  CAMEO: "cameo", // 客串
+  OTHER: "other", // 其他
+} as const;
+
+type RelationType =
+  (typeof CharacterRelationType)[keyof typeof CharacterRelationType];
+
+// 识别角色关系类型
+const getRelationType = (relation: string): RelationType => {
   const lowerRelation = relation.toLowerCase();
 
   if (lowerRelation.includes("主角") || lowerRelation.includes("主人公")) {
-    return {
-      bg: "bg-rose-50",
-      text: "text-rose-700",
-      border: "border-rose-200",
-    };
+    return CharacterRelationType.MAIN;
   } else if (lowerRelation.includes("配角") || lowerRelation.includes("次要")) {
-    return {
-      bg: "bg-blue-50",
-      text: "text-blue-700",
-      border: "border-blue-200",
-    };
+    return CharacterRelationType.SUPPORTING;
   } else if (
     lowerRelation.includes("客串") ||
     lowerRelation.includes("cameo")
   ) {
-    return {
-      bg: "bg-gray-100",
-      text: "text-gray-600",
-      border: "border-gray-200",
-    };
-  } else {
-    return {
+    return CharacterRelationType.CAMEO;
+  }
+  return CharacterRelationType.OTHER;
+};
+
+// 角色类型配置
+const relationConfig: Record<
+  RelationType,
+  { priority: number; style: { bg: string; text: string; border: string } }
+> = {
+  [CharacterRelationType.MAIN]: {
+    priority: 1,
+    style: {
+      bg: "bg-rose-50",
+      text: "text-rose-700",
+      border: "border-rose-200",
+    },
+  },
+  [CharacterRelationType.SUPPORTING]: {
+    priority: 2,
+    style: {
+      bg: "bg-blue-50",
+      text: "text-blue-700",
+      border: "border-blue-200",
+    },
+  },
+  [CharacterRelationType.OTHER]: {
+    priority: 3,
+    style: {
       bg: "bg-purple-50",
       text: "text-purple-700",
       border: "border-purple-200",
-    };
-  }
+    },
+  },
+  [CharacterRelationType.CAMEO]: {
+    priority: 4,
+    style: {
+      bg: "bg-gray-100",
+      text: "text-gray-600",
+      border: "border-gray-200",
+    },
+  },
+};
+
+// 根据关系类型获取标签样式
+const getRelationBadgeStyle = (relation: string) => {
+  const type = getRelationType(relation);
+  return relationConfig[type].style;
+};
+
+// 根据角色关系获取优先级
+const getRelationPriority = (relation: string) => {
+  const type = getRelationType(relation);
+  return relationConfig[type].priority;
 };
 
 // 获取角色列表
@@ -60,9 +152,12 @@ const getCharacters = async () => {
   try {
     loading.value = true;
     const res = await Service.getRelatedCharactersBySubjectId(props.subject.id);
-    characters.value = res;
 
-    console.log(characters.value, "characters");
+    // 按照角色关系排序：主角 > 配角 > 其他 > 客串
+    characters.value = res.sort((a, b) => {
+      return getRelationPriority(a.relation) - getRelationPriority(b.relation);
+    });
+
     // 获取每个角色的详细信息
     await Promise.all(
       res.map((character: RelatedCharacter) => getCharacterDetail(character.id))
@@ -103,41 +198,62 @@ watch(
   <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mt-4">
     <!-- 标题区域 -->
     <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center">
-        <svg
-          class="w-5 h-5 text-gray-600 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <div class="flex items-center gap-3">
+        <div class="flex items-center">
+          <svg
+            class="w-5 h-5 text-gray-600 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            ></path>
+          </svg>
+          <h3 class="text-lg font-semibold text-gray-800">角色</h3>
+        </div>
+        <!-- 筛选器 -->
+        <select
+          v-model="filterType"
+          class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-          ></path>
-        </svg>
-        <h3 class="text-lg font-semibold text-gray-800">角色</h3>
+          <option value="all">全部 ({{ characters.length }})</option>
+          <option :value="CharacterRelationType.MAIN">主角</option>
+          <option :value="CharacterRelationType.SUPPORTING">配角</option>
+          <option :value="CharacterRelationType.OTHER">其他</option>
+          <option :value="CharacterRelationType.CAMEO">客串</option>
+        </select>
       </div>
-      <span class="text-sm text-gray-500">
-        {{ characters.length }} 个角色
-      </span>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-gray-500">
+          {{ filteredCharacters.length }} 个角色
+        </span>
+        <router-link
+          v-if="filteredCharacters.length > 12"
+          :to="`/subject/${props.subject?.id}/characters`"
+          class="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+        >
+          查看全部
+        </router-link>
+      </div>
     </div>
 
     <!-- 加载状态 -->
     <div
       v-if="loading"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
     >
       <div
-        v-for="i in 8"
+        v-for="i in 12"
         :key="i"
         class="flex gap-3 p-3 rounded-lg border border-gray-100 animate-pulse"
       >
-        <div class="w-16 h-16 bg-gray-200 rounded-md flex-shrink-0"></div>
-        <div class="flex-1 space-y-2">
+        <div class="w-14 h-14 bg-gray-200 rounded-md flex-shrink-0"></div>
+        <div class="flex-1 space-y-2 pt-0.5">
           <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-          <div class="h-3 bg-gray-200 rounded w-1/2"></div>
           <div class="h-3 bg-gray-200 rounded w-1/2"></div>
         </div>
       </div>
@@ -146,33 +262,45 @@ watch(
     <!-- 角色列表 -->
     <div
       v-else-if="characters.length > 0"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
     >
       <div
-        v-for="item in characters.slice(0, 12)"
+        v-for="item in displayedCharacters"
         :key="item.id"
-        class="group flex items-start gap-3 p-3 rounded-lg transition-all duration-200 border border-gray-200 cursor-pointer hover:border-blue-300 hover:shadow-sm hover:bg-blue-50/50 bg-white"
+        class="group flex items-start gap-3 p-3 rounded-lg transition-all duration-200 border border-gray-200 cursor-pointer hover:border-blue-300 hover:shadow-sm hover:bg-blue-50/30 bg-white"
       >
         <!-- 角色图片 -->
         <div class="flex-shrink-0">
-          <img
-            :src="getCharacterImageUrl(item.images)"
-            :alt="item.name"
-            class="w-16 h-16 object-cover object-top rounded-md"
-            loading="lazy"
-          />
+          <div class="relative overflow-hidden rounded-md">
+            <img
+              :src="getCharacterImageUrl(item.images)"
+              :alt="item.name"
+              class="w-14 h-14 object-cover object-top transition-transform duration-200 group-hover:scale-105"
+              loading="lazy"
+            />
+          </div>
         </div>
 
         <!-- 角色信息 -->
         <div class="flex flex-col min-w-0 flex-1 pt-0.5">
           <!-- 角色名称和关系标签 -->
-          <div class="flex items-start justify-between gap-2 mb-1.5">
-            <h4
-              class="font-semibold text-gray-800 text-sm truncate flex-1 group-hover:text-blue-600 transition-colors"
-              :title="item.name"
-            >
-              {{ item.name }}
-            </h4>
+          <div class="flex items-start justify-between gap-2 mb-1">
+            <div class="flex-1 min-w-0">
+              <h4
+                class="font-semibold text-gray-900 text-sm truncate group-hover:text-blue-600 transition-colors leading-tight"
+                :title="chineseNamesMap[item.id] || item.name"
+              >
+                {{ chineseNamesMap[item.id] || item.name }}
+              </h4>
+              <!-- 日文名作为副标题 -->
+              <p
+                v-if="chineseNamesMap[item.id]"
+                class="text-xs text-gray-500 truncate mt-0.5 leading-tight"
+                :title="item.name"
+              >
+                {{ item.name }}
+              </p>
+            </div>
             <span
               :class="[
                 'px-2 py-0.5 text-xs font-medium rounded-md flex-shrink-0 border',
@@ -188,18 +316,19 @@ watch(
           <!-- 声优信息 -->
           <p
             v-if="item.actors?.[0]?.name"
-            class="text-xs text-gray-600 truncate"
+            class="text-xs text-gray-600 truncate flex items-center gap-1"
             :title="item.actors[0].name"
           >
-            <span class="text-gray-400">CV:</span> {{ item.actors[0].name }}
-          </p>
-
-          <!-- 角色详情 -->
-          <p
-            v-else-if="charactersDetailMap[item.id]?.infobox?.[0]?.value"
-            class="text-xs text-gray-500 truncate"
-          >
-            {{ charactersDetailMap[item.id]?.infobox?.[0]?.value }}
+            <svg
+              class="w-3 h-3 text-gray-400"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+              ></path>
+            </svg>
+            <span>{{ item.actors[0].name }}</span>
           </p>
         </div>
       </div>

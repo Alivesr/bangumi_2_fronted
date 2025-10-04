@@ -1,14 +1,23 @@
 <script setup lang="ts">
 import type { CalendarItem } from "@/api/models/CalenderItem";
+import { useRouter } from "vue-router";
 
-defineProps<{
+const router = useRouter();
+const props = defineProps<{
   item: NonNullable<CalendarItem["items"]>[number] | undefined;
 }>();
+
+const handleClick = () => {
+  if (props.item?.id) {
+    router.push(`/subject/${props.item.id}`);
+  }
+};
 </script>
 
 <template>
   <div class="rounded-xl">
     <div
+      @click="handleClick"
       class="relative w-42 h-62 rounded-[5px] overflow-hidden group cursor-pointer transition-transform duration-300 hover:scale-102"
     >
       <img
