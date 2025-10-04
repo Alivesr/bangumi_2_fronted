@@ -7,6 +7,8 @@ import Top from "@/pages/Subject/components/Top.vue";
 import Left from "@/pages/Subject/components/Left.vue";
 import Introduction from "@/pages/Subject/components/Introduction.vue";
 import Tags from "@/pages/Subject/components/Tags.vue";
+import Characters from "@/pages/Subject/components/Characters.vue";
+import SubjectRelations from "@/pages/Subject/components/Subject.vue";
 
 const route = useRoute();
 const subjectId = Number(route.params.id);
@@ -50,6 +52,10 @@ onMounted(() => {
           <Introduction :subject="subject" />
           <!-- 标签 -->
           <Tags :subject="subject" />
+          <!-- 角色 -->
+          <Characters :subject="subject" />
+          <!-- 关联条目 -->
+          <SubjectRelations :subject="subject" />
         </div>
       </div>
     </div>
