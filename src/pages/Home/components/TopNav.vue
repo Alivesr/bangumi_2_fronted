@@ -9,7 +9,7 @@ const authStore = useAuthStore();
 const isMobileMenuOpen = ref(false);
 const showSearchDropdown = ref(false);
 const showUserMenu = ref(false);
-const searchType = ref(0);
+const searchType = ref(2);
 const keyword = ref("");
 
 // 搜索类型选项
@@ -59,11 +59,10 @@ const handleSearch = () => {
   if (!keyword.value.trim()) return;
 
   router.push({
-    path: `/subject_search/${keyword.value}`,
-    query: searchType.value ? { type: searchType.value.toString() } : {},
+    path: `/search/${keyword.value}`,
+    query: { type: searchType.value.toString() },
   });
-  keyword.value = "";
-  searchType.value = 0;
+  // 保持keyword和searchType，方便用户继续搜索
 };
 
 // 计算当前激活的导航项
