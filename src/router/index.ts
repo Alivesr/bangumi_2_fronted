@@ -10,6 +10,7 @@ import Calendar from "@/pages/Calendar/index.vue";
 import Auth from "@/pages/Auth/index.vue";
 import User from "@/pages/User/index.vue";
 import Subject from "@/pages/Subject/index.vue";
+import Search from "@/pages/Search/index.vue";
 
 const routes = [
   { path: "/", component: Home },
@@ -23,6 +24,7 @@ const routes = [
   { path: "/auth/error", component: Auth },
   { path: "/user/:id", component: User },
   { path: "/subject/:id", component: Subject },
+  { path: "/search/:keyword", component: Search },
 ];
 
 const router = createRouter({
