@@ -34,7 +34,7 @@ const setActiveTab = (tab: string) => {
           <!-- 主标题 -->
           <div class="flex-1 min-w-0">
             <div class="text-5xl font-bold text-gray-900 truncate">
-              {{ props.subject?.name_cn || "加载中..." }}
+              {{ props.subject?.name_cn || props.subject?.name }}
             </div>
             <p
               v-if="props.subject?.name"

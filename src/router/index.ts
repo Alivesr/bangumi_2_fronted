@@ -30,6 +30,10 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior() {
+    // 每次路由切换都直接重置到页面顶部
+    return { top: 0 };
+  },
 });
 
 export default router;
