@@ -11,6 +11,7 @@ const props = defineProps<{
 const relatedSubjects = ref<v0_subject_relation[]>([]);
 const loading = ref(false);
 const filterRelation = ref<string>("all");
+const showFilterDropdown = ref(false);
 
 // 所有唯一的关系类型
 const relationTypes = computed(() => {
@@ -32,6 +33,39 @@ const filteredSubjects = computed(() => {
 const displayedSubjects = computed(() => {
   return filteredSubjects.value.slice(0, 12);
 });
+
+// 筛选器选项
+const filterOptions = computed(() => {
+  return [
+    { value: "all", label: "全部" },
+    ...relationTypes.value.map((type) => ({ value: type, label: type })),
+  ];
+});
+
+// 当前选中的筛选器标签
+const currentFilterLabel = computed(() => {
+  const option = filterOptions.value.find(
+    (opt) => opt.value === filterRelation.value
+  );
+  return option ? option.label : "全部";
+});
+
+// 切换下拉菜单
+const toggleFilterDropdown = (event: Event) => {
+  event.stopPropagation();
+  showFilterDropdown.value = !showFilterDropdown.value;
+};
+
+// 选择筛选类型
+const selectFilterType = (value: string) => {
+  filterRelation.value = value;
+  showFilterDropdown.value = false;
+};
+
+// 关闭下拉菜单
+const closeDropdown = () => {
+  showFilterDropdown.value = false;
+};
 
 const getRelatedSubjectsBySubjectId = async () => {
   if (!props.subject?.id) return;
@@ -103,7 +137,10 @@ watch(
 </script>
 
 <template>
-  <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mt-4">
+  <div
+    class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mt-4"
+    @click="closeDropdown"
+  >
     <!-- 标题区域 -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
@@ -124,15 +161,53 @@ watch(
           <h3 class="text-lg font-semibold text-gray-800">关联条目</h3>
         </div>
         <!-- 筛选器 -->
-        <select
-          v-model="filterRelation"
-          class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-        >
-          <option value="all">全部 ({{ relatedSubjects.length }})</option>
-          <option v-for="type in relationTypes" :key="type" :value="type">
-            {{ type }}
-          </option>
-        </select>
+        <div class="relative" @click.stop>
+          <button
+            @click="toggleFilterDropdown"
+            class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+          >
+            <span>{{ currentFilterLabel }}</span>
+            <svg
+              class="w-4 h-4 text-gray-400 transition-transform duration-200"
+              :class="{ 'rotate-180': showFilterDropdown }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+
+          <!-- 下拉菜单 -->
+          <div
+            v-if="showFilterDropdown"
+            class="absolute top-full left-0 mt-1 min-w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+          >
+            <div class="py-1 max-h-64 overflow-y-auto">
+              <button
+                v-for="option in filterOptions"
+                :key="option.value"
+                @click="selectFilterType(option.value)"
+                :class="[
+                  'w-full text-left px-3 py-2 text-sm transition-colors duration-200 whitespace-nowrap',
+                  filterRelation === option.value
+                    ? 'bg-blue-50 text-blue-600 font-medium'
+                    : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600',
+                ]"
+              >
+                {{ option.label }}
+                <span v-if="option.value === 'all'" class="text-gray-400 ml-1">
+                  ({{ relatedSubjects.length }})
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm text-gray-500">
