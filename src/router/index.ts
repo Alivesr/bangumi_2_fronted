@@ -9,6 +9,7 @@ import Real from "@/pages/Real/index.vue";
 import Calendar from "@/pages/Calendar/index.vue";
 import Auth from "@/pages/Auth/index.vue";
 import User from "@/pages/User/index.vue";
+import Subject from "@/pages/Subject/index.vue";
 
 const routes = [
   { path: "/", component: Home },
@@ -21,6 +22,7 @@ const routes = [
   { path: "/auth/success", component: Auth },
   { path: "/auth/error", component: Auth },
   { path: "/user/:id", component: User },
+  { path: "/subject/:id", component: Subject },
 ];
 
 const router = createRouter({
