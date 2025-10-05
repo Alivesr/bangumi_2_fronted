@@ -1,79 +1,109 @@
 <script setup lang="ts">
-import { Service } from "@/api/services/Service";
-import { type Subject } from "@/api/models/Subject";
-import { type SubjectType } from "@/api/models/SubjectType";
-import { onMounted, ref, computed } from "vue";
+import { computed, watch, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { type SubjectType } from "@/api/models/SubjectType";
 import { formatType } from "@/utils/formatType";
+import { useSubjectCategories } from "@/composables/useSubjectCategories";
+import { usePagination } from "@/composables/usePagination";
+import { useSubjectData } from "@/composables/useSubjectData";
+import SubjectFilter, {
+  type FilterGroup,
+} from "@/components/SubjectFilter.vue";
+import ViewModeToggle, { type ViewMode } from "@/components/ViewModeToggle.vue";
+import SubjectCard from "@/components/SubjectCard.vue";
+import SubjectSkeleton from "@/components/SubjectSkeleton.vue";
 
 // Props
 const props = defineProps<{
-  type: SubjectType; // 1:书籍 2:动画 3:音乐 4:游戏 6:三次元
-  title?: string; // 自定义标题，不传则使用默认
+  type: SubjectType;
+  title?: string;
 }>();
 
 const router = useRouter();
-const subjects = ref<Subject[]>([]);
-const loading = ref(false);
-const total = ref(0);
-const limit = 24;
-const offset = ref(0);
-const hasMore = ref(true);
+const viewMode = ref<ViewMode>("grid");
 
-// 获取默认标题
+// 使用 composables
+const { subjects, loading, total, filterValues, fetchSubjects } =
+  useSubjectData({
+    type: props.type,
+  });
+
+const {
+  currentPage,
+  totalPages,
+  visiblePages,
+  skeletonCount,
+  offset,
+  goToPage,
+  resetToFirstPage,
+} = usePagination(total);
+
+const categoryOptions = useSubjectCategories(props.type);
+
+// 计算属性
 const pageTitle = computed(() => {
-  if (props.title) return props.title;
-  return formatType(props.type);
+  return props.title || formatType(props.type);
 });
 
-// 获取条目列表
-const getTypeSubjects = async (isLoadMore = false) => {
-  if (loading.value) return;
+const filterConfig = computed<FilterGroup[]>(() => {
+  const baseFilters: FilterGroup[] = [
+    {
+      key: "sort",
+      label: "排序方式",
+      type: "select",
+      options: [
+        { label: "默认排序", value: "" },
+        { label: "评分最高", value: "rank" },
+        { label: "最多收藏", value: "heat" },
+        { label: "最新发布", value: "date" },
+      ],
+    },
+  ];
 
-  try {
-    loading.value = true;
-    const res = await Service.getSubjects(
-      props.type,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      limit,
-      offset.value
-    );
+  // 添加分类筛选（仅音乐类型没有分类）
+  if (props.type !== 3) {
+    baseFilters.push({
+      key: "category",
+      label: "分类",
+      type: "select",
+      options: categoryOptions,
+    });
+  }
 
-    if (isLoadMore) {
-      subjects.value = [...subjects.value, ...(res.data || [])];
-    } else {
-      subjects.value = res.data || [];
-    }
+  // 添加年份筛选
+  baseFilters.push({
+    key: "year",
+    label: "发布年份",
+    type: "year",
+  });
 
-    total.value = res.total || 0;
-    hasMore.value = subjects.value.length < total.value;
-  } catch (err) {
-    console.error("获取条目列表失败:", err);
-    subjects.value = [];
-  } finally {
-    loading.value = false;
+  return baseFilters;
+});
+
+// 方法
+const handlePageChange = (page: number) => {
+  if (goToPage(page)) {
+    fetchSubjects(offset.value);
   }
 };
 
-// 加载更多
-const loadMore = () => {
-  if (!hasMore.value || loading.value) return;
-  offset.value += limit;
-  getTypeSubjects(true);
-};
-
-// 跳转到详情页
-const goToSubject = (id: number) => {
+const handleSubjectClick = (id: number) => {
   router.push(`/subject/${id}`);
 };
 
+// 监听器
+watch(
+  filterValues,
+  () => {
+    resetToFirstPage();
+    fetchSubjects(0);
+  },
+  { deep: true }
+);
+
+// 生命周期
 onMounted(() => {
-  getTypeSubjects();
+  fetchSubjects(0);
 });
 </script>
 
@@ -86,118 +116,116 @@ onMounted(() => {
       <div class="mb-5">
         <div class="flex items-center justify-between mb-2">
           <h1 class="text-2xl font-bold text-gray-900">{{ pageTitle }}</h1>
-          <div v-if="!loading && total > 0" class="text-xs text-gray-500">
-            共
-            <span class="font-semibold text-gray-700">{{ total }}</span> 个条目
+          <div class="flex items-center gap-4">
+            <!-- 视图切换按钮 -->
+            <ViewModeToggle v-model="viewMode" />
+            <!-- 统计信息 -->
+            <div v-if="!loading && total > 0" class="text-xs text-gray-500">
+              共
+              <span class="font-semibold text-gray-700">{{ total }}</span>
+              个条目
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 加载状态 -->
-      <div
-        v-if="loading && subjects.length === 0"
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
-      >
-        <div
-          v-for="i in 12"
-          :key="i"
-          class="bg-white/80 backdrop-blur border border-gray-200/40 rounded-lg overflow-hidden animate-pulse"
-        >
-          <div class="aspect-[3/4] bg-gray-200"></div>
-          <div class="p-3 space-y-2">
-            <div class="h-4 bg-gray-200 rounded w-full"></div>
-            <div class="h-3 bg-gray-200 rounded w-2/3"></div>
+      <!-- 主体区域：左侧筛选 + 右侧内容 -->
+      <div class="flex gap-5">
+        <!-- 左侧筛选器 -->
+        <aside class="w-60 flex-shrink-0 hidden lg:block">
+          <div class="sticky top-20">
+            <SubjectFilter v-model="filterValues" :filters="filterConfig" />
           </div>
-        </div>
-      </div>
+        </aside>
 
-      <!-- 条目网格 -->
-      <div v-else-if="subjects.length > 0">
-        <div
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
-        >
-          <div
-            v-for="subject in subjects"
-            :key="subject.id"
-            @click="goToSubject(subject.id)"
-            class="group bg-white/80 backdrop-blur border border-gray-200/40 hover:border-blue-300/60 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
-          >
-            <!-- 封面 -->
-            <div class="aspect-[3/4] overflow-hidden bg-gray-100 relative">
-              <img
-                :src="subject.images?.common || subject.images?.medium"
-                :alt="subject.name"
-                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                loading="lazy"
+        <!-- 右侧内容区 -->
+        <div class="flex-1 min-w-0">
+          <!-- 加载状态 -->
+          <SubjectSkeleton
+            v-if="loading"
+            :mode="viewMode"
+            :count="skeletonCount"
+          />
+
+          <!-- 条目显示 -->
+          <div v-else-if="subjects.length > 0">
+            <div
+              :class="[
+                'gap-4',
+                viewMode === 'grid'
+                  ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+                  : 'space-y-3',
+              ]"
+            >
+              <SubjectCard
+                v-for="subject in subjects"
+                :key="subject.id"
+                :subject="subject"
+                :mode="viewMode"
+                @click="handleSubjectClick"
               />
-              <!-- 评分角标 -->
-              <div
-                v-if="subject.rating?.score"
-                class="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1"
-              >
-                <span>{{ subject.rating.score.toFixed(1) }}</span>
-                <span class="text-yellow-400">★</span>
+            </div>
+
+            <!-- 分页组件 -->
+            <div class="flex justify-center mt-8">
+              <div class="flex items-center gap-2">
+                <!-- 上一页 -->
+                <button
+                  @click="handlePageChange(currentPage - 1)"
+                  :disabled="currentPage <= 1 || loading"
+                  class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                  上一页
+                </button>
+
+                <!-- 页码 -->
+                <div class="flex items-center gap-1">
+                  <template v-for="page in visiblePages" :key="page">
+                    <button
+                      v-if="page !== '...'"
+                      @click="handlePageChange(page as number)"
+                      :disabled="loading"
+                      :class="[
+                        'px-3 py-2 text-sm rounded-md transition-all duration-200 hover:scale-105 active:scale-95',
+                        currentPage === page
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'text-gray-700 hover:bg-gray-100 border border-gray-300 hover:border-blue-300',
+                      ]"
+                    >
+                      {{ page }}
+                    </button>
+                    <span v-else class="px-2 text-gray-400">...</span>
+                  </template>
+                </div>
+
+                <!-- 下一页 -->
+                <button
+                  @click="handlePageChange(currentPage + 1)"
+                  :disabled="currentPage >= totalPages || loading"
+                  class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                  下一页
+                </button>
               </div>
             </div>
 
-            <!-- 信息 -->
-            <div class="p-3">
-              <h3
-                class="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors mb-1"
-                :title="subject.name_cn || subject.name"
-              >
-                {{ subject.name_cn || subject.name }}
-              </h3>
-              <p v-if="subject.date" class="text-xs text-gray-400 truncate">
-                {{ subject.date }}
-              </p>
+            <!-- 分页信息 -->
+            <div class="text-center mt-4 text-sm text-gray-500">
+              第 {{ currentPage }} 页，共 {{ totalPages }} 页，共
+              {{ total }} 个条目
             </div>
           </div>
-        </div>
 
-        <!-- 加载更多按钮 -->
-        <div v-if="hasMore" class="flex justify-center mt-8">
-          <button
-            @click="loadMore"
-            :disabled="loading"
-            class="px-6 py-3 bg-white/80 backdrop-blur border border-gray-200/40 hover:border-blue-300/60 text-gray-700 hover:text-blue-600 font-medium rounded-lg transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          <!-- 空状态 -->
+          <div
+            v-else
+            class="bg-white/60 backdrop-blur border border-gray-200/40 rounded-lg p-16 flex flex-col items-center justify-center"
           >
-            <span v-if="loading" class="flex items-center gap-2">
-              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              加载中...
-            </span>
-            <span v-else>加载更多</span>
-          </button>
+            <div class="text-6xl mb-4">📚</div>
+            <h3 class="text-lg font-medium text-gray-700 mb-2">暂无条目</h3>
+            <p class="text-sm text-gray-400">该分类下暂时没有内容</p>
+          </div>
         </div>
-
-        <!-- 已加载完成提示 -->
-        <div v-else class="text-center py-8 text-sm text-gray-400">
-          已加载全部 {{ total }} 个条目
-        </div>
-      </div>
-
-      <!-- 空状态 -->
-      <div
-        v-else
-        class="bg-white/60 backdrop-blur border border-gray-200/40 rounded-lg p-16 flex flex-col items-center justify-center"
-      >
-        <div class="text-6xl mb-4">📚</div>
-        <h3 class="text-lg font-medium text-gray-700 mb-2">暂无条目</h3>
-        <p class="text-sm text-gray-400">该分类下暂时没有内容</p>
       </div>
     </div>
   </div>
