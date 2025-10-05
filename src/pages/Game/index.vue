@@ -1,9 +1,8 @@
-<template>
-  <div>
-    <h1>index</h1>
-  </div>
-</template>
-
 <script setup lang="ts">
-// 游戏页面逻辑
+import TypeSubject from "@/components/typeSubject.vue";
 </script>
+
+<template>
+  <!-- 游戏分类，type=4 -->
+  <TypeSubject :type="4" />
+</template>

@@ -43,19 +43,26 @@ const isExpanded = (key: string): boolean => {
 
 <template>
   <div class="w-64 flex-shrink-0" style="min-width: 16rem">
-    <div class="h-96 rounded-xl overflow-hidden shadow-lg">
+    <div
+      class="h-96 rounded-xl overflow-hidden shadow-lg"
+      :class="{ 'bg-gray-200 animate-pulse': !props.subject }"
+    >
       <img
-        :src="props.subject?.images.medium"
+        v-if="props.subject?.images.medium"
+        :src="props.subject.images.medium"
         alt="subject"
         class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
       />
     </div>
     <!-- 基本信息（放在图片正下方） -->
-    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mt-4">
+    <div
+      v-if="props.subject?.infobox && props.subject.infobox.length > 0"
+      class="bg-white/80 backdrop-blur border border-gray-200/40 p-6 mt-4"
+    >
       <h3 class="text-lg font-semibold text-gray-800 mb-3">基本信息</h3>
       <div class="flex flex-col gap-3">
         <div
-          v-for="item in props.subject?.infobox"
+          v-for="item in props.subject.infobox"
           :key="item.key"
           class="flex flex-col gap-1 py-2 border-b border-gray-100 last:border-b-0"
         >

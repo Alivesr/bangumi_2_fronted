@@ -62,7 +62,7 @@ const getTagColor = (index: number) => {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mt-4">
+  <div class="bg-white/80 backdrop-blur border border-gray-200/40 p-6 mt-4">
     <!-- 标题区域 -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center">

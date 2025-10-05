@@ -1,7 +1,8 @@
-<template>
-  <div>
-    <h1>index84894894894</h1>
-  </div>
-</template>
+<script setup lang="ts">
+import TypeSubject from "@/components/typeSubject.vue";
+</script>
 
-<script setup lang="ts"></script>
+<template>
+  <!-- 三次元分类，type=6 -->
+  <TypeSubject :type="6" />
+</template>

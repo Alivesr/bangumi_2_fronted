@@ -137,7 +137,10 @@ watch(
 </script>
 
 <template>
-  <div class="bg-white rounded-xl p-6 shadow-md mt-4" @click="closeDropdown">
+  <div
+    class="bg-white/80 backdrop-blur border border-gray-200/40 p-6 mt-4"
+    @click="closeDropdown"
+  >
     <!-- 标题区域 -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
@@ -183,7 +186,7 @@ watch(
           <!-- 下拉菜单 -->
           <div
             v-if="showFilterDropdown"
-            class="absolute top-full left-0 mt-1 min-w-32 bg-white rounded-lg shadow-xl z-50 overflow-hidden"
+            class="absolute top-full left-0 mt-1 min-w-32 bg-white/95 backdrop-blur border border-gray-200/60 rounded-lg shadow-lg z-50 overflow-hidden"
           >
             <div class="py-1 max-h-64 overflow-y-auto">
               <button
