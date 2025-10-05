@@ -12,6 +12,7 @@ import SubjectFilter, {
 import ViewModeToggle, { type ViewMode } from "@/components/ViewModeToggle.vue";
 import SubjectCard from "@/components/SubjectCard.vue";
 import SubjectSkeleton from "@/components/SubjectSkeleton.vue";
+import Pagination from "@/components/Pagination.vue";
 
 // Props
 const props = defineProps<{
@@ -167,53 +168,14 @@ onMounted(() => {
             </div>
 
             <!-- 分页组件 -->
-            <div class="flex justify-center mt-8">
-              <div class="flex items-center gap-2">
-                <!-- 上一页 -->
-                <button
-                  @click="handlePageChange(currentPage - 1)"
-                  :disabled="currentPage <= 1 || loading"
-                  class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
-                >
-                  上一页
-                </button>
-
-                <!-- 页码 -->
-                <div class="flex items-center gap-1">
-                  <template v-for="page in visiblePages" :key="page">
-                    <button
-                      v-if="page !== '...'"
-                      @click="handlePageChange(page as number)"
-                      :disabled="loading"
-                      :class="[
-                        'px-3 py-2 text-sm rounded-md transition-all duration-200 hover:scale-105 active:scale-95',
-                        currentPage === page
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'text-gray-700 hover:bg-gray-100 border border-gray-300 hover:border-blue-300',
-                      ]"
-                    >
-                      {{ page }}
-                    </button>
-                    <span v-else class="px-2 text-gray-400">...</span>
-                  </template>
-                </div>
-
-                <!-- 下一页 -->
-                <button
-                  @click="handlePageChange(currentPage + 1)"
-                  :disabled="currentPage >= totalPages || loading"
-                  class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
-                >
-                  下一页
-                </button>
-              </div>
-            </div>
-
-            <!-- 分页信息 -->
-            <div class="text-center mt-4 text-sm text-gray-500">
-              第 {{ currentPage }} 页，共 {{ totalPages }} 页，共
-              {{ total }} 个条目
-            </div>
+            <Pagination
+              :current-page="currentPage"
+              :total-pages="totalPages"
+              :total="total"
+              :visible-pages="visiblePages"
+              :loading="loading"
+              @page-change="handlePageChange"
+            />
           </div>
 
           <!-- 空状态 -->

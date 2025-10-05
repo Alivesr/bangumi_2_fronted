@@ -4,38 +4,39 @@ import type { SubjectCollectionType } from "@/api/models/SubjectCollectionType";
 import type { UserSubjectCollection } from "@/api/models/UserSubjectCollection";
 
 import { useRoute, useRouter } from "vue-router";
-import { computed, onMounted, ref } from "vue";
+import { onMounted, ref } from "vue";
+import { usePagination } from "@/composables/usePagination";
+import Pagination from "@/components/Pagination.vue";
 
 const collections = ref<UserSubjectCollection[]>([]);
 const route = useRoute();
 const router = useRouter();
 const username = route.params.id as string;
 const loading = ref(false);
-// 分页相关
-const currentPage = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
 const type = ref<SubjectCollectionType | undefined>(undefined);
 
-// 计算总页数
-const totalPages = computed(() => {
-  return Math.ceil(total.value / pageSize.value) || 1;
-});
+// 使用分页 composable
+const { currentPage, totalPages, visiblePages, goToPage, resetToFirstPage } =
+  usePagination(total, { limit: pageSize.value });
 
 const fetchData = async (page = 1) => {
   loading.value = true;
   try {
-    const offset = (page - 1) * pageSize.value;
+    const currentOffset = (page - 1) * pageSize.value;
     const res = await Service.getUserCollectionsByUsername(
       username,
       undefined,
       type.value,
       pageSize.value,
-      offset
+      currentOffset
     );
     collections.value = res.data || [];
     total.value = res.total || 0;
-    currentPage.value = page;
+    if (goToPage(page)) {
+      // 分页状态已更新
+    }
   } catch (error) {
     console.error("获取收藏列表失败:", error);
   } finally {
@@ -44,23 +45,8 @@ const fetchData = async (page = 1) => {
 };
 
 const handlePageChange = (page: number) => {
-  fetchData(page);
-};
-
-// 页码输入框
-const inputPage = ref<number | undefined>(undefined);
-
-// 处理跳转到指定页面
-const handleJumpToPage = () => {
-  if (
-    inputPage.value &&
-    inputPage.value >= 1 &&
-    inputPage.value <= totalPages.value
-  ) {
-    handlePageChange(inputPage.value);
-    inputPage.value = undefined; // 清空输入框
-  } else {
-    inputPage.value = undefined; // 无效输入时清空
+  if (goToPage(page)) {
+    fetchData(page);
   }
 };
 
@@ -103,16 +89,38 @@ const getButtonClasses = (
   color: string
 ) => {
   if (currentType === typeId) {
-    return `${COMMON_CLASSES.button} bg-${color}-500 text-white shadow-sm`;
+    // 选中状态 - 使用具体的颜色类
+    const selectedClasses = {
+      blue: `${COMMON_CLASSES.button} bg-blue-500 text-white shadow-sm`,
+      green: `${COMMON_CLASSES.button} bg-green-500 text-white shadow-sm`,
+      yellow: `${COMMON_CLASSES.button} bg-yellow-500 text-white shadow-sm`,
+      gray: `${COMMON_CLASSES.button} bg-gray-500 text-white shadow-sm`,
+      red: `${COMMON_CLASSES.button} bg-red-500 text-white shadow-sm`,
+    };
+    return (
+      selectedClasses[color as keyof typeof selectedClasses] ||
+      selectedClasses.blue
+    );
   }
 
-  return `${COMMON_CLASSES.button} bg-gray-100 text-gray-700 hover:bg-${color}-100 hover:text-${color}-600`;
+  // 未选中状态 - 使用具体的颜色类
+  const unselectedClasses = {
+    blue: `${COMMON_CLASSES.button} bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-600`,
+    green: `${COMMON_CLASSES.button} bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-600`,
+    yellow: `${COMMON_CLASSES.button} bg-gray-100 text-gray-700 hover:bg-yellow-100 hover:text-yellow-600`,
+    gray: `${COMMON_CLASSES.button} bg-gray-100 text-gray-700 hover:bg-gray-100 hover:text-gray-600`,
+    red: `${COMMON_CLASSES.button} bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-600`,
+  };
+  return (
+    unselectedClasses[color as keyof typeof unselectedClasses] ||
+    unselectedClasses.blue
+  );
 };
 
 const handleClick = async (collectionType: string) => {
   // 更新类型并重置页码
   type.value = parseInt(collectionType) as SubjectCollectionType;
-  currentPage.value = 1;
+  resetToFirstPage();
   // 使用统一的fetchData方法获取数据
   await fetchData(1);
 };
@@ -125,24 +133,24 @@ onMounted(() => {
 <template>
   <div class="w-full">
     <!-- 顶部导航标签 -->
-    <div class="flex gap-6 mb-6 border-b border-gray-200 pb-2">
+    <div class="flex gap-8 mb-6 border-b border-gray-200/60">
       <div
-        class="text-base text-blue-600 font-medium border-b-2 border-blue-600 pb-2 cursor-pointer transition-all duration-200"
+        class="text-base text-blue-600 font-semibold border-b-2 border-blue-600 pb-3 cursor-pointer transition-all duration-200 hover:text-blue-700"
       >
         收藏
       </div>
       <div
-        class="text-base text-gray-500 hover:text-blue-500 cursor-pointer transition-all duration-200 pb-2 hover:-translate-y-0.5"
+        class="text-base text-gray-500 hover:text-blue-500 cursor-pointer transition-all duration-200 pb-3 hover:border-b-2 hover:border-blue-300"
       >
         时间线
       </div>
       <div
-        class="text-base text-gray-500 hover:text-blue-500 cursor-pointer transition-all duration-200 pb-2 hover:-translate-y-0.5"
+        class="text-base text-gray-500 hover:text-blue-500 cursor-pointer transition-all duration-200 pb-3 hover:border-b-2 hover:border-blue-300"
       >
         讨论
       </div>
       <div
-        class="text-base text-gray-500 hover:text-blue-500 cursor-pointer transition-all duration-200 pb-2 hover:-translate-y-0.5"
+        class="text-base text-gray-500 hover:text-blue-500 cursor-pointer transition-all duration-200 pb-3 hover:border-b-2 hover:border-blue-300"
       >
         关注
       </div>
@@ -250,79 +258,15 @@ onMounted(() => {
       <p class="text-lg">暂无收藏内容</p>
       <p class="text-sm mt-1">快去发现你喜欢的作品吧！</p>
     </div>
-    <!-- 页码切换 -->
-    <div
+    <!-- 分页组件 -->
+    <Pagination
       v-if="!loading && totalPages > 1"
-      class="flex justify-center items-center mt-10 mb-8 gap-3"
-    >
-      <!-- 上一页按钮 -->
-      <button
-        class="group flex items-center gap-2 px-5 py-2.5 bg-white text-gray-600 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-600 shadow-sm hover:shadow-md"
-        :disabled="currentPage === 1"
-        @click="handlePageChange(currentPage - 1)"
-      >
-        <svg
-          class="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 19l-7-7 7-7"
-          ></path>
-        </svg>
-        <span class="font-medium">上一页</span>
-      </button>
-
-      <!-- 页码信息 -->
-      <div class="flex items-center gap-2">
-        <!-- 页码输入框 -->
-        <div
-          class="flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl px-4 py-2.5 shadow-sm hover:shadow-md transition-all duration-200"
-        >
-          <span class="text-sm text-gray-500 mr-2">第</span>
-          <input
-            v-model.number="inputPage"
-            @keyup.enter="handleJumpToPage"
-            @blur="handleJumpToPage"
-            type="number"
-            :min="1"
-            :max="totalPages"
-            class="w-12 text-center font-semibold text-blue-600 bg-transparent border-none outline-none focus:ring-0 transition-colors duration-200"
-            :placeholder="currentPage.toString()"
-          />
-          <span class="text-sm text-gray-500 mx-2">页</span>
-          <div class="w-px h-4 bg-gray-300 mx-2"></div>
-          <span class="text-sm text-gray-500 mr-1">共</span>
-          <span class="font-semibold text-gray-700">{{ totalPages }}</span>
-          <span class="text-sm text-gray-500 ml-1">页</span>
-        </div>
-      </div>
-
-      <!-- 下一页按钮 -->
-      <button
-        class="group flex items-center gap-2 px-5 py-2.5 bg-white text-gray-600 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-600 shadow-sm hover:shadow-md"
-        :disabled="currentPage >= totalPages"
-        @click="handlePageChange(currentPage + 1)"
-      >
-        <span class="font-medium">下一页</span>
-        <svg
-          class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 5l7 7-7 7"
-          ></path>
-        </svg>
-      </button>
-    </div>
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      :total="total"
+      :visible-pages="visiblePages"
+      :loading="loading"
+      @page-change="handlePageChange"
+    />
   </div>
 </template>
