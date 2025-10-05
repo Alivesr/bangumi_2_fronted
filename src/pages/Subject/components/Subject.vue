@@ -137,10 +137,7 @@ watch(
 </script>
 
 <template>
-  <div
-    class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mt-4"
-    @click="closeDropdown"
-  >
+  <div class="bg-white rounded-xl p-6 shadow-md mt-4" @click="closeDropdown">
     <!-- 标题区域 -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
@@ -164,7 +161,7 @@ watch(
         <div class="relative" @click.stop>
           <button
             @click="toggleFilterDropdown"
-            class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
+            class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-50 border border-transparent rounded-lg hover:bg-gray-100 transition-all duration-200"
           >
             <span>{{ currentFilterLabel }}</span>
             <svg
@@ -186,7 +183,7 @@ watch(
           <!-- 下拉菜单 -->
           <div
             v-if="showFilterDropdown"
-            class="absolute top-full left-0 mt-1 min-w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden"
+            class="absolute top-full left-0 mt-1 min-w-32 bg-white rounded-lg shadow-xl z-50 overflow-hidden"
           >
             <div class="py-1 max-h-64 overflow-y-auto">
               <button
@@ -231,7 +228,7 @@ watch(
       <div
         v-for="i in 12"
         :key="i"
-        class="flex gap-3 p-3 rounded-lg border border-gray-100 animate-pulse"
+        class="flex gap-3 p-3 rounded-lg bg-gray-50 animate-pulse"
       >
         <div class="w-14 h-14 bg-gray-200 rounded-md flex-shrink-0"></div>
         <div class="flex-1 space-y-2 pt-0.5">
@@ -249,7 +246,7 @@ watch(
       <div
         v-for="item in displayedSubjects"
         :key="item.id"
-        class="group flex items-start gap-3 p-3 rounded-lg transition-all duration-200 border border-gray-200 cursor-pointer hover:border-blue-300 hover:shadow-sm hover:bg-blue-50/30 bg-white"
+        class="group flex items-start gap-3 p-3 rounded-lg transition-all duration-200 border border-gray-100 cursor-pointer hover:border-blue-200 hover:shadow-md hover:bg-blue-50/30 bg-white"
       >
         <div class="flex-shrink-0">
           <div class="relative overflow-hidden rounded-md">

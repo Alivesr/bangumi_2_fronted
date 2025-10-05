@@ -27,7 +27,7 @@ const toggleExpansion = () => {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+  <div class="bg-white rounded-xl p-6 shadow-md">
     <!-- 标题区域 -->
     <div class="flex items-center mb-4">
       <svg
