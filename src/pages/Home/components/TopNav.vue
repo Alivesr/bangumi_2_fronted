@@ -95,7 +95,7 @@ const getNavItemClass = (isActive: boolean) => [
     : "text-gray-700 hover:text-blue-600 hover:bg-blue-50",
 ];
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = "https://bangumi-sever.vercel.app";
 
 const handleLogin = () => {
   window.open(BACKEND_URL + "/api/login", "_blank");

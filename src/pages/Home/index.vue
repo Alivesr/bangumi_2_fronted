@@ -247,7 +247,7 @@
                 <div class="text-sm font-semibold text-gray-900">音乐</div>
               </router-link>
             </div>
-          </div>
+        </div>
 
           <div
             class="bg-white/80 backdrop-blur border border-gray-200/40 rounded-xl p-6"
@@ -259,7 +259,7 @@
             >
               开始探索
             </router-link>
-          </div>
+        </div>
         </div>
       </div>
     </div>
