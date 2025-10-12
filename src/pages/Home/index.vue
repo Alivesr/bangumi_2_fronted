@@ -3,71 +3,139 @@
     class="w-full min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30"
   >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- 轮播图区域 -->
-      <div class="mb-8">
-        <div
-          v-if="loading"
-          class="relative h-80 bg-white/80 backdrop-blur border border-gray-200/40 rounded-xl animate-pulse"
-        ></div>
-        <div v-else-if="hotAnime.length > 0" class="relative group">
-          <div
-            class="relative h-80 rounded-xl overflow-hidden bg-white/80 backdrop-blur border border-gray-200/40"
-          >
-            <div
-              v-for="(item, index) in hotAnime"
-              :key="item.id"
-              :class="[
-                'absolute inset-0 transition-opacity duration-500',
-                currentSlide === index ? 'opacity-100' : 'opacity-0',
-              ]"
-            >
-              <img
-                :src="item.images?.large || item.images?.common"
-                :alt="item.name_cn || item.name"
-                class="w-full h-full object-cover"
-              />
-              <div
-                class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"
-              ></div>
+      <!-- 标题区域 -->
+      <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">发现精彩内容</h1>
+        <p class="text-lg text-gray-600">
+          探索热门动画、高分作品和更多精彩内容
+        </p>
+      </div>
 
-              <div class="absolute bottom-0 left-0 right-0 p-6">
-                <div class="max-w-2xl">
-                  <div class="flex items-center gap-2 mb-2">
-                    <span
-                      v-if="item.rating?.score"
-                      class="px-2 py-0.5 bg-blue-600 text-white text-sm font-semibold rounded"
+      <!-- 竖版封面轮播图 -->
+      <div class="mb-12">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold text-gray-900">热门推荐</h2>
+          <router-link
+            to="/anime"
+            class="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+          >
+            查看更多 →
+          </router-link>
+        </div>
+
+        <div v-if="loading" class="relative">
+          <div class="flex gap-6 overflow-hidden">
+            <div
+              v-for="i in 6"
+              :key="i"
+              class="flex-shrink-0 w-48 aspect-[3/4] bg-gray-200 rounded-xl animate-pulse"
+            ></div>
+          </div>
+        </div>
+
+        <div v-else-if="hotAnime.length > 0" class="relative group">
+          <!-- 轮播容器 -->
+          <div class="relative max-w-4xl mx-auto">
+            <!-- 卡片展示区域 -->
+            <div class="flex items-center justify-center gap-6 py-8">
+              <div
+                v-for="(item, index) in getVisibleCards()"
+                :key="`${item.id}-${index}`"
+                @click="handleCardClick(index)"
+                :class="[
+                  'transition-all duration-700 ease-out cursor-pointer shrink-0',
+                  getCardClasses(index),
+                ]"
+              >
+                <!-- 立体封面卡片 -->
+                <div
+                  :class="[
+                    'relative aspect-[3/4] rounded-xl overflow-hidden shadow-2xl transition-all duration-700',
+                    item.originalIndex === currentSlide
+                      ? 'ring-4 ring-blue-500/50'
+                      : '',
+                  ]"
+                  :style="{ width: getCardWidth(index) }"
+                >
+                  <!-- 封面图片 -->
+                  <img
+                    :src="item.images?.large || item.images?.common"
+                    :alt="item.name_cn || item.name"
+                    class="w-full h-full object-cover"
+                  />
+
+                  <!-- 遮罩层 - 非中心卡片变暗 -->
+                  <div
+                    :class="[
+                      'absolute inset-0 bg-black transition-opacity duration-500',
+                      index === 2 ? 'opacity-0' : 'opacity-60',
+                    ]"
+                  ></div>
+
+                  <!-- 渐变遮罩 - 始终显示 -->
+                  <div
+                    class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"
+                  ></div>
+
+                  <!-- 信息展示 - 只在中心卡片显示 -->
+                  <div
+                    v-if="index === 2"
+                    class="absolute inset-0 p-4 flex flex-col justify-end"
+                  >
+                    <h3
+                      class="text-white font-bold text-base line-clamp-2 mb-2"
+                    >
+                      {{ item.name_cn || item.name }}
+                    </h3>
+                    <p
+                      v-if="item.summary"
+                      class="text-white/90 text-xs line-clamp-2 mb-3"
+                    >
+                      {{ item.summary }}
+                    </p>
+                    <div class="flex items-center justify-between">
+                      <div
+                        v-if="item.rating?.score"
+                        class="flex items-center gap-1"
+                      >
+                        <span class="text-yellow-400 text-sm">★</span>
+                        <span class="text-white text-sm font-bold">{{
+                          item.rating.score.toFixed(1)
+                        }}</span>
+                      </div>
+                      <span class="text-white/80 text-xs">{{ item.date }}</span>
+                    </div>
+                    <button
+                      @click.stop="goToSubject(item.id)"
+                      class="mt-3 w-full py-1.5 bg-blue-600 hover:bg-blue-700 !text-white font-semibold rounded-lg transition-colors text-sm"
+                    >
+                      查看详情
+                    </button>
+                  </div>
+
+                  <!-- 评分标签 -->
+                  <div
+                    v-if="item.rating?.score"
+                    class="absolute top-2 right-2 z-10"
+                  >
+                    <div
+                      class="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg"
                     >
                       {{ item.rating.score.toFixed(1) }}
-                    </span>
-                    <span class="text-white/80 text-sm">{{ item.date }}</span>
+                    </div>
                   </div>
-                  <h3 class="text-2xl font-bold text-white mb-2">
-                    {{ item.name_cn || item.name }}
-                  </h3>
-                  <p
-                    v-if="item.summary"
-                    class="text-white/90 text-sm line-clamp-2 mb-3"
-                  >
-                    {{ item.summary }}
-                  </p>
-                  <button
-                    @click="goToSubject(item.id)"
-                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    查看详情
-                  </button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 控制按钮 -->
+          <!-- 左右控制按钮 -->
           <button
             @click="prevSlide"
-            class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur hover:bg-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 backdrop-blur hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all duration-300 z-20"
           >
             <svg
-              class="w-5 h-5"
+              class="w-6 h-6 text-gray-900"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -80,12 +148,13 @@
               />
             </svg>
           </button>
+
           <button
             @click="nextSlide"
-            class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur hover:bg-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 backdrop-blur hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all duration-300 z-20"
           >
             <svg
-              class="w-5 h-5"
+              class="w-6 h-6 text-gray-900"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -100,166 +169,166 @@
           </button>
 
           <!-- 指示器 -->
-          <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <div class="flex justify-center gap-2 mt-8">
             <button
               v-for="(_, index) in hotAnime"
               :key="index"
               @click="goToSlide(index)"
               :class="[
-                'h-1.5 rounded-full transition-all',
-                currentSlide === index ? 'bg-white w-6' : 'bg-white/50 w-1.5',
+                'h-2 rounded-full transition-all duration-300',
+                currentSlide === index
+                  ? 'bg-blue-600 w-8'
+                  : 'bg-gray-300 w-2 hover:bg-gray-400',
               ]"
             ></button>
           </div>
         </div>
       </div>
 
-      <!-- 主体内容 -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- 左侧：排行榜 -->
-        <div class="lg:col-span-2">
-          <div
-            class="bg-white/80 backdrop-blur border border-gray-200/40 rounded-xl p-6"
+      <!-- 高分榜单 -->
+      <div class="mb-12">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold text-gray-900">高分榜单</h2>
+          <router-link
+            to="/anime"
+            class="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
           >
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-xl font-bold text-gray-900">高分榜单</h2>
-              <router-link
-                to="/anime"
-                class="text-blue-600 hover:text-blue-700 text-sm transition-colors"
-              >
-                查看更多 →
-              </router-link>
-            </div>
+            查看更多 →
+          </router-link>
+        </div>
 
-            <div v-if="loading" class="space-y-3">
-              <div
-                v-for="i in 10"
-                :key="i"
-                class="h-20 bg-gray-200 rounded-lg animate-pulse"
-              ></div>
+        <div
+          v-if="topRatedLoading"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <div
+            v-for="i in 6"
+            :key="i"
+            class="bg-white/80 backdrop-blur border border-gray-200/40 rounded-xl p-4 animate-pulse"
+          >
+            <div class="flex gap-4">
+              <div class="w-16 h-20 bg-gray-200 rounded-lg"></div>
+              <div class="flex-1 space-y-2">
+                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                <div class="h-3 bg-gray-200 rounded w-1/3"></div>
+              </div>
             </div>
-            <div v-else class="space-y-3">
-              <div
-                v-for="(item, index) in topRated"
-                :key="item.id"
-                @click="goToSubject(item.id)"
-                class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors group"
-              >
-                <!-- 排名 -->
+          </div>
+        </div>
+
+        <div
+          v-else
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <div
+            v-for="(item, index) in topRated.slice(0, 6)"
+            :key="item.id"
+            @click="goToSubject(item.id)"
+            class="bg-white/80 backdrop-blur border border-gray-200/40 rounded-xl p-4 hover:shadow-lg transition-all duration-300 cursor-pointer group"
+          >
+            <div class="flex gap-4">
+              <!-- 排名和封面 -->
+              <div class="flex flex-col items-center">
                 <div
                   :class="[
-                    'flex-shrink-0 w-8 h-8 rounded flex items-center justify-center font-bold text-sm',
+                    'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mb-2',
                     index < 3
-                      ? 'bg-blue-100 text-blue-600'
-                      : 'bg-gray-100 text-gray-600',
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-600',
                   ]"
                 >
                   {{ index + 1 }}
                 </div>
-
-                <!-- 封面 -->
-                <div
-                  class="flex-shrink-0 w-12 h-16 rounded overflow-hidden bg-gray-100"
-                >
+                <div class="w-16 h-20 rounded-lg overflow-hidden shadow-md">
                   <img
                     :src="item.images?.small || item.images?.common"
                     :alt="item.name_cn || item.name"
                     class="w-full h-full object-cover"
                   />
                 </div>
+              </div>
 
-                <!-- 信息 -->
-                <div class="flex-1 min-w-0">
-                  <h3
-                    class="font-medium text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors"
+              <!-- 信息 -->
+              <div class="flex-1 min-w-0">
+                <h3
+                  class="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors mb-1"
+                >
+                  {{ item.name_cn || item.name }}
+                </h3>
+                <p class="text-sm text-gray-500 mb-2">{{ item.date }}</p>
+                <div v-if="item.rating?.score" class="flex items-center gap-2">
+                  <div class="flex items-center gap-1">
+                    <span class="text-yellow-400 text-sm">★</span>
+                    <span class="text-lg font-bold text-gray-900">{{
+                      item.rating.score.toFixed(1)
+                    }}</span>
+                  </div>
+                  <span class="text-xs text-gray-500"
+                    >({{ item.rating.total }})</span
                   >
-                    {{ item.name_cn || item.name }}
-                  </h3>
-                  <p class="text-sm text-gray-500 truncate">{{ item.date }}</p>
-                </div>
-
-                <!-- 评分 -->
-                <div v-if="item.rating?.score" class="flex-shrink-0 text-right">
-                  <div class="text-lg font-bold text-gray-900">
-                    {{ item.rating.score.toFixed(1) }}
-                  </div>
-                  <div class="text-xs text-gray-500">
-                    {{ item.rating.total }}
-                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- 右侧：快速导航 -->
-        <div class="space-y-6">
-          <div
-            class="bg-white/80 backdrop-blur border border-gray-200/40 rounded-xl p-6"
+      <!-- 快速导航 -->
+      <div
+        class="bg-white/80 backdrop-blur border border-gray-200/40 rounded-xl p-8"
+      >
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">
+          快速导航
+        </h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-6">
+          <router-link
+            to="/anime"
+            class="p-6 bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200/40 rounded-xl hover:border-blue-300 hover:shadow-lg transition-all text-center group"
           >
-            <h2 class="text-xl font-bold text-gray-900 mb-4">快速导航</h2>
-            <div class="grid grid-cols-2 gap-3">
-              <router-link
-                to="/anime"
-                class="p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200/40 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all text-center group"
-              >
-                <div
-                  class="text-3xl mb-2 group-hover:scale-110 transition-transform"
-                >
-                  🎬
-                </div>
-                <div class="text-sm font-semibold text-gray-900">动画</div>
-              </router-link>
-
-              <router-link
-                to="/book"
-                class="p-4 bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200/40 rounded-lg hover:border-green-300 hover:shadow-sm transition-all text-center group"
-              >
-                <div
-                  class="text-3xl mb-2 group-hover:scale-110 transition-transform"
-                >
-                  📖
-                </div>
-                <div class="text-sm font-semibold text-gray-900">书籍</div>
-              </router-link>
-
-              <router-link
-                to="/game"
-                class="p-4 bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200/40 rounded-lg hover:border-purple-300 hover:shadow-sm transition-all text-center group"
-              >
-                <div
-                  class="text-3xl mb-2 group-hover:scale-110 transition-transform"
-                >
-                  🎮
-                </div>
-                <div class="text-sm font-semibold text-gray-900">游戏</div>
-              </router-link>
-
-              <router-link
-                to="/music"
-                class="p-4 bg-gradient-to-br from-pink-50 to-pink-100/50 border border-pink-200/40 rounded-lg hover:border-pink-300 hover:shadow-sm transition-all text-center group"
-              >
-                <div
-                  class="text-3xl mb-2 group-hover:scale-110 transition-transform"
-                >
-                  🎵
-                </div>
-                <div class="text-sm font-semibold text-gray-900">音乐</div>
-              </router-link>
-            </div>
-        </div>
-
-          <div
-            class="bg-white/80 backdrop-blur border border-gray-200/40 rounded-xl p-6"
-          >
-            <h2 class="text-xl font-bold text-gray-900 mb-4">搜索</h2>
-            <router-link
-              to="/search"
-              class="block w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-center font-medium rounded-lg transition-colors"
+            <div
+              class="text-4xl mb-3 group-hover:scale-110 transition-transform"
             >
-              开始探索
-            </router-link>
-        </div>
+              🎬
+            </div>
+            <div class="text-sm font-semibold text-gray-900">动画</div>
+          </router-link>
+
+          <router-link
+            to="/book"
+            class="p-6 bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200/40 rounded-xl hover:border-green-300 hover:shadow-lg transition-all text-center group"
+          >
+            <div
+              class="text-4xl mb-3 group-hover:scale-110 transition-transform"
+            >
+              📖
+            </div>
+            <div class="text-sm font-semibold text-gray-900">书籍</div>
+          </router-link>
+
+          <router-link
+            to="/game"
+            class="p-6 bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200/40 rounded-xl hover:border-purple-300 hover:shadow-lg transition-all text-center group"
+          >
+            <div
+              class="text-4xl mb-3 group-hover:scale-110 transition-transform"
+            >
+              🎮
+            </div>
+            <div class="text-sm font-semibold text-gray-900">游戏</div>
+          </router-link>
+
+          <router-link
+            to="/music"
+            class="p-6 bg-gradient-to-br from-pink-50 to-pink-100/50 border border-pink-200/40 rounded-xl hover:border-pink-300 hover:shadow-lg transition-all text-center group"
+          >
+            <div
+              class="text-4xl mb-3 group-hover:scale-110 transition-transform"
+            >
+              🎵
+            </div>
+            <div class="text-sm font-semibold text-gray-900">音乐</div>
+          </router-link>
         </div>
       </div>
     </div>
@@ -267,7 +336,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { Service } from "@/api/services/Service";
 import type { Subject } from "@/api/models/Subject";
@@ -278,9 +347,11 @@ const router = useRouter();
 const hotAnime = ref<Subject[]>([]);
 const topRated = ref<Subject[]>([]);
 const loading = ref(true);
+const topRatedLoading = ref(true); // 独立的高分榜单加载状态
 const currentSlide = ref(0);
+let autoPlayInterval: number | null = null;
 
-// 获取热门动画
+// 获取热门动画 - 优化：减少数量
 const fetchHotAnime = async () => {
   try {
     const res = await Service.getSubjects(
@@ -291,7 +362,7 @@ const fetchHotAnime = async () => {
       "rank",
       undefined,
       undefined,
-      6,
+      10, // 从18减少到10，减少数据量
       0
     );
     hotAnime.value = res.data || [];
@@ -300,9 +371,10 @@ const fetchHotAnime = async () => {
   }
 };
 
-// 获取高分作品
+// 获取高分作品 - 优化：减少数量
 const fetchTopRated = async () => {
   try {
+    topRatedLoading.value = true;
     const res = await Service.getSubjects(
       2,
       undefined,
@@ -311,26 +383,31 @@ const fetchTopRated = async () => {
       "rank",
       undefined,
       undefined,
-      10,
+      6, // 从10减少到6，只显示需要的数量
       0
     );
     topRated.value = res.data || [];
   } catch (error) {
     console.error("获取高分作品失败:", error);
+  } finally {
+    topRatedLoading.value = false;
   }
 };
 
 // 轮播图控制
 const nextSlide = () => {
-  if (hotAnime.value.length > 0) {
-    currentSlide.value = (currentSlide.value + 1) % hotAnime.value.length;
+  if (currentSlide.value < hotAnime.value.length - 1) {
+    currentSlide.value++;
+  } else {
+    currentSlide.value = 0; // 循环回到第一个
   }
 };
 
 const prevSlide = () => {
-  if (hotAnime.value.length > 0) {
-    currentSlide.value =
-      (currentSlide.value - 1 + hotAnime.value.length) % hotAnime.value.length;
+  if (currentSlide.value > 0) {
+    currentSlide.value--;
+  } else {
+    currentSlide.value = hotAnime.value.length - 1; // 循环到最后一个
   }
 };
 
@@ -338,17 +415,134 @@ const goToSlide = (index: number) => {
   currentSlide.value = index;
 };
 
+const handleCardClick = (displayIndex: number) => {
+  const visibleCards = getVisibleCards();
+  const clickedCard = visibleCards[displayIndex];
+
+  if (displayIndex === 2) {
+    // 如果点击的是中心卡片，跳转到详情页
+    goToSubject(clickedCard.id);
+  } else {
+    // 如果点击的是其他卡片，将其设为中心
+    currentSlide.value = clickedCard.originalIndex;
+  }
+};
+
 const goToSubject = (id: number) => {
   router.push(`/subject/${id}`);
 };
 
-// 页面加载
+// 获取可见的卡片（中心及左右各2个）
+const getVisibleCards = () => {
+  const totalCards = hotAnime.value.length;
+  if (totalCards === 0) return [];
+
+  const visibleCards = [];
+
+  // 获取中心卡片及左右各2个卡片
+  for (let i = -2; i <= 2; i++) {
+    let index = currentSlide.value + i;
+
+    // 处理循环
+    while (index < 0) {
+      index = index + totalCards;
+    }
+    while (index >= totalCards) {
+      index = index - totalCards;
+    }
+
+    const card = hotAnime.value[index];
+    if (card) {
+      visibleCards.push({
+        id: card.id,
+        name: card.name,
+        name_cn: card.name_cn,
+        images: card.images,
+        summary: card.summary,
+        rating: card.rating,
+        date: card.date,
+        originalIndex: index,
+        displayIndex: i + 2, // 0-4 的索引
+      });
+    }
+  }
+
+  return visibleCards;
+};
+
+// 获取卡片样式类
+const getCardClasses = (displayIndex: number) => {
+  const centerIndex = 2; // 中心卡片的 displayIndex
+  const diff = Math.abs(displayIndex - centerIndex);
+
+  if (diff === 0) {
+    // 中心卡片
+    return "opacity-100 scale-100 z-20";
+  } else if (diff === 1) {
+    // 相邻卡片
+    return "opacity-80 scale-90 z-10";
+  } else {
+    // 边缘卡片
+    return "opacity-60 scale-75 z-0";
+  }
+};
+
+// 获取卡片宽度
+const getCardWidth = (displayIndex: number) => {
+  const centerIndex = 2;
+  const diff = Math.abs(displayIndex - centerIndex);
+
+  if (diff === 0) {
+    return "240px"; // 中心卡片最大
+  } else if (diff === 1) {
+    return "200px"; // 相邻卡片中等
+  } else {
+    return "160px"; // 边缘卡片最小
+  }
+};
+
+// 开始自动轮播
+const startAutoPlay = () => {
+  stopAutoPlay();
+  autoPlayInterval = window.setInterval(() => {
+    nextSlide();
+  }, 5000);
+};
+
+// 停止自动轮播
+const stopAutoPlay = () => {
+  if (autoPlayInterval !== null) {
+    clearInterval(autoPlayInterval);
+    autoPlayInterval = null;
+  }
+};
+
+// 页面加载 - 优化：渐进式加载
 onMounted(async () => {
   loading.value = true;
-  await Promise.all([fetchHotAnime(), fetchTopRated()]);
+
+  // 优先加载轮播图数据，快速展示首屏内容
+  await fetchHotAnime();
   loading.value = false;
 
-  // 自动轮播
-  setInterval(nextSlide, 5000);
+  // 启动自动轮播
+  startAutoPlay();
+
+  // 延迟加载次要内容（高分榜单），不阻塞首屏
+  setTimeout(() => {
+    fetchTopRated();
+  }, 100);
+});
+
+// 组件卸载时清理
+onUnmounted(() => {
+  stopAutoPlay();
 });
 </script>
+
+<style scoped>
+.perspective-1000 {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+</style>
