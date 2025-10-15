@@ -9,6 +9,7 @@ import Introduction from "@/pages/Subject/components/Introduction.vue";
 import Tags from "@/pages/Subject/components/Tags.vue";
 import Characters from "@/pages/Subject/components/Characters.vue";
 import SubjectRelations from "@/pages/Subject/components/Subject.vue";
+import Eps from "@/pages/Subject/components/Eps.vue";
 
 const route = useRoute();
 const subjectId = Number(route.params.id);
@@ -207,6 +208,8 @@ onMounted(() => {
           <div class="flex-1 min-w-0">
             <!-- 简介 -->
             <Introduction :subject="subject" />
+            <!-- 剧集 -->
+            <Eps :subject="subject" />
             <!-- 标签 -->
             <Tags :subject="subject" />
             <!-- 角色 -->
