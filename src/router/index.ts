@@ -11,6 +11,7 @@ import Auth from "@/pages/Auth/index.vue";
 import User from "@/pages/User/index.vue";
 import Subject from "@/pages/Subject/index.vue";
 import Search from "@/pages/Search/index.vue";
+import Ep from "@/pages/Ep/index.vue";
 
 const routes = [
   { path: "/", component: Home },
@@ -25,6 +26,7 @@ const routes = [
   { path: "/user/:id", component: User },
   { path: "/subject/:id", component: Subject },
   { path: "/search/:keyword", component: Search },
+  { path: "/ep/:id", component: Ep },
 ];
 
 const router = createRouter({

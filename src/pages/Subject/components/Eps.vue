@@ -3,10 +3,13 @@ import { onMounted, ref, computed } from "vue";
 import { type Subject } from "@/api/models/Subject";
 import { type Episode } from "@/api/models/Episode";
 import { Service } from "@/api/services/Service";
+import { useRouter } from "vue-router";
 
 const props = defineProps<{
   subject?: Subject;
 }>();
+
+const router = useRouter();
 
 const eps = ref<Episode[]>([]);
 const loading = ref(false);
@@ -124,6 +127,7 @@ onMounted(() => {
               'ring-2 ring-blue-500 ring-offset-2':
                 hoveredEpisode?.id === episode.id,
             }"
+            @click="router.push(`/ep/${episode.id}`)"
           >
             {{ episode.sort || episode.ep || "?" }}
           </button>
