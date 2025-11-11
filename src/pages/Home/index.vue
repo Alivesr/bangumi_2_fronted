@@ -39,7 +39,7 @@
             <!-- 卡片展示区域 -->
             <div class="flex items-center justify-center gap-6 py-8">
               <div
-                v-for="(item, index) in getVisibleCards()"
+                v-for="(item, index) in visibleCards"
                 :key="`${item.id}-${index}`"
                 @click="handleCardClick(index)"
                 :class="[
@@ -59,9 +59,12 @@
                 >
                   <!-- 封面图片 -->
                   <img
-                    :src="item.images?.large || item.images?.common"
+                    :src="item.images?.medium || item.images?.common"
                     :alt="item.name_cn || item.name"
                     class="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    :fetchpriority="index === 2 ? 'high' : 'low'"
                   />
 
                   <!-- 遮罩层 - 非中心卡片变暗 -->
@@ -186,7 +189,7 @@
       </div>
 
       <!-- 高分榜单 -->
-      <div class="mb-12">
+      <div class="mb-12" ref="topRatedSectionRef" v-if="showTopRated">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-2xl font-bold text-gray-900">高分榜单</h2>
           <router-link
@@ -245,6 +248,8 @@
                     :src="item.images?.small || item.images?.common"
                     :alt="item.name_cn || item.name"
                     class="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               </div>
@@ -277,6 +282,8 @@
       <!-- 快速导航 -->
       <div
         class="bg-white/80 backdrop-blur border border-gray-200/40 rounded-xl p-8"
+        ref="quickNavRef"
+        v-if="showQuickNav"
       >
         <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">
           快速导航
@@ -336,7 +343,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { Service } from "@/api/services/Service";
 import type { Subject } from "@/api/models/Subject";
@@ -351,42 +358,85 @@ const topRatedLoading = ref(true); // 独立的高分榜单加载状态
 const currentSlide = ref(0);
 let autoPlayInterval: number | null = null;
 
-// 获取热门动画 - 优化：减少数量
+// 延迟渲染控制
+const showTopRated = ref(false);
+const showQuickNav = ref(false);
+const topRatedSectionRef = ref<HTMLElement | null>(null);
+const quickNavRef = ref<HTMLElement | null>(null);
+let io: IntersectionObserver | null = null;
+
+// 空闲调度（兼容）
+const scheduleIdle = (cb: () => void) => {
+  if (typeof window !== "undefined" && (window as any).requestIdleCallback) {
+    (window as any).requestIdleCallback(cb, { timeout: 1500 });
+  } else {
+    setTimeout(cb, 150);
+  }
+};
+
+// 简易缓存
+const fetchWithCache = async <T>(key: string, ttl: number, fn: () => Promise<T>): Promise<T> => {
+  const now = Date.now();
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) {
+      const { t, v } = JSON.parse(cached);
+      if (now - t < ttl) return v as T;
+    }
+  } catch {}
+  const value = await fn();
+  try {
+    sessionStorage.setItem(key, JSON.stringify({ t: now, v: value }));
+  } catch {}
+  return value;
+};
+
+// 获取热门动画 - 优化：减少数量 + 缓存
 const fetchHotAnime = async () => {
   try {
-    const res = await Service.getSubjects(
-      2,
-      undefined,
-      undefined,
-      undefined,
-      "rank",
-      undefined,
-      undefined,
-      10, // 从18减少到10，减少数据量
-      0
+    const res = await fetchWithCache(
+      "home.hotAnime:v1",
+      10 * 60 * 1000,
+      () =>
+        Service.getSubjects(
+          2,
+          undefined,
+          undefined,
+          undefined,
+          "rank",
+          undefined,
+          undefined,
+          10,
+          0
+        )
     );
-    hotAnime.value = res.data || [];
+    hotAnime.value = (res as any).data || [];
   } catch (error) {
     console.error("获取热门动画失败:", error);
   }
 };
 
-// 获取高分作品 - 优化：减少数量
+// 获取高分作品 - 优化：减少数量 + 缓存
 const fetchTopRated = async () => {
   try {
     topRatedLoading.value = true;
-    const res = await Service.getSubjects(
-      2,
-      undefined,
-      undefined,
-      undefined,
-      "rank",
-      undefined,
-      undefined,
-      6, // 从10减少到6，只显示需要的数量
-      0
+    const res = await fetchWithCache(
+      "home.topRated:v1",
+      10 * 60 * 1000,
+      () =>
+        Service.getSubjects(
+          2,
+          undefined,
+          undefined,
+          undefined,
+          "rank",
+          undefined,
+          undefined,
+          6,
+          0
+        )
     );
-    topRated.value = res.data || [];
+    topRated.value = (res as any).data || [];
   } catch (error) {
     console.error("获取高分作品失败:", error);
   } finally {
@@ -416,7 +466,6 @@ const goToSlide = (index: number) => {
 };
 
 const handleCardClick = (displayIndex: number) => {
-  const visibleCards = getVisibleCards();
   const clickedCard = visibleCards[displayIndex];
 
   if (displayIndex === 2) {
@@ -432,28 +481,18 @@ const goToSubject = (id: number) => {
   router.push(`/subject/${id}`);
 };
 
-// 获取可见的卡片（中心及左右各2个）
-const getVisibleCards = () => {
+// 可见卡片（中心及左右各2个）
+const visibleCards = computed(() => {
   const totalCards = hotAnime.value.length;
-  if (totalCards === 0) return [];
-
-  const visibleCards = [];
-
-  // 获取中心卡片及左右各2个卡片
+  if (!totalCards) return [] as any[];
+  const list: any[] = [];
   for (let i = -2; i <= 2; i++) {
     let index = currentSlide.value + i;
-
-    // 处理循环
-    while (index < 0) {
-      index = index + totalCards;
-    }
-    while (index >= totalCards) {
-      index = index - totalCards;
-    }
-
+    while (index < 0) index += totalCards;
+    while (index >= totalCards) index -= totalCards;
     const card = hotAnime.value[index];
     if (card) {
-      visibleCards.push({
+      list.push({
         id: card.id,
         name: card.name,
         name_cn: card.name_cn,
@@ -462,13 +501,12 @@ const getVisibleCards = () => {
         rating: card.rating,
         date: card.date,
         originalIndex: index,
-        displayIndex: i + 2, // 0-4 的索引
+        displayIndex: i + 2,
       });
     }
   }
-
-  return visibleCards;
-};
+  return list;
+});
 
 // 获取卡片样式类
 const getCardClasses = (displayIndex: number) => {
@@ -529,14 +567,48 @@ onMounted(async () => {
   startAutoPlay();
 
   // 延迟加载次要内容（高分榜单），不阻塞首屏
-  setTimeout(() => {
+  scheduleIdle(() => {
     fetchTopRated();
-  }, 100);
+  });
+
+  // IntersectionObserver 懒渲染次级区块
+  try {
+    io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            if (e.target === topRatedSectionRef.value) showTopRated.value = true;
+            if (e.target === quickNavRef.value) showQuickNav.value = true;
+            io && io.unobserve(e.target);
+          }
+        });
+      },
+      { root: null, rootMargin: '200px 0px', threshold: 0.01 }
+    );
+    if (topRatedSectionRef.value) io.observe(topRatedSectionRef.value);
+    if (quickNavRef.value) io.observe(quickNavRef.value);
+  } catch {}
+
+  // 页面可见性控制自动播放
+  const onVis = () => {
+    if (document.hidden) {
+      stopAutoPlay();
+    } else {
+      startAutoPlay();
+    }
+  };
+  document.addEventListener('visibilitychange', onVis);
+  // 卸载时移除监听
+  (onUnmounted as any)(() => document.removeEventListener('visibilitychange', onVis));
 });
 
 // 组件卸载时清理
 onUnmounted(() => {
   stopAutoPlay();
+  if (io) {
+    try { io.disconnect(); } catch {}
+    io = null;
+  }
 });
 </script>
 

@@ -1,17 +1,17 @@
 import { createRouter, createWebHistory } from "vue-router";
 
-import Home from "@/pages/Home/index.vue";
-import Anime from "@/pages/Anime/index.vue";
-import Book from "@/pages/Book/index.vue";
-import Game from "@/pages/Game/index.vue";
-import Music from "@/pages/Music/index.vue";
-import Real from "@/pages/Real/index.vue";
-import Calendar from "@/pages/Calendar/index.vue";
-import Auth from "@/pages/Auth/index.vue";
-import User from "@/pages/User/index.vue";
-import Subject from "@/pages/Subject/index.vue";
-import Search from "@/pages/Search/index.vue";
-import Ep from "@/pages/Ep/index.vue";
+const Home = () => import("@/pages/Home/index.vue");
+const Anime = () => import("@/pages/Anime/index.vue");
+const Book = () => import("@/pages/Book/index.vue");
+const Game = () => import("@/pages/Game/index.vue");
+const Music = () => import("@/pages/Music/index.vue");
+const Real = () => import("@/pages/Real/index.vue");
+const Calendar = () => import("@/pages/Calendar/index.vue");
+const Auth = () => import("@/pages/Auth/index.vue");
+const User = () => import("@/pages/User/index.vue");
+const Subject = () => import("@/pages/Subject/index.vue");
+const Search = () => import("@/pages/Search/index.vue");
+const Ep = () => import("@/pages/Ep/index.vue");
 
 const routes = [
   { path: "/", component: Home },
